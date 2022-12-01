@@ -8,11 +8,34 @@ import {
 } from "./binarySearch.js";
 import cmp from "./cmp.js";
 import { Key, Record } from "./types.js";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+function Key(uniqueId: string) {
+    return `FIDB:AsyncStorage/v0/${uniqueId}`;
+}
 
 class RecordStore {
     private records: Record[] = [];
+    private loaded = false;
 
-    public get(key: Key | FDBKeyRange) {
+    constructor(private readonly uniqueId: string) {}
+
+    private async ensureLoaded() {
+        if (this.loaded) return;
+
+        const serializedRecords = await AsyncStorage.getItem(Key(this.uniqueId));
+        if (serializedRecords === null) return;
+
+        // TODO(eyas): Deserialize records more reliably.
+        const deserialized = JSON.parse(serializedRecords) as unknown;
+
+        if (!deserialized || !(deserialized instanceof Array)) return;
+        this.records.push(...deserialized);
+    }
+
+    public async get(key: Key | FDBKeyRange) {
+        await this.ensureLoaded();
+
         if (key instanceof FDBKeyRange) {
             return getByKeyRange(this.records, key);
         }
@@ -20,7 +43,9 @@ class RecordStore {
         return getByKey(this.records, key);
     }
 
-    public add(newRecord: Record) {
+    public async add(newRecord: Record) {
+        await this.ensureLoaded();
+
         // Find where to put it so it's sorted by key
         let i;
         if (this.records.length === 0) {
@@ -50,7 +75,9 @@ class RecordStore {
         this.records.splice(i, 0, newRecord);
     }
 
-    public delete(key: Key) {
+    public async delete(key: Key) {
+        await this.ensureLoaded();
+
         const deletedRecords: Record[] = [];
 
         const isRange = key instanceof FDBKeyRange;
@@ -67,7 +94,9 @@ class RecordStore {
         return deletedRecords;
     }
 
-    public deleteByValue(key: Key) {
+    public async deleteByValue(key: Key) {
+        await this.ensureLoaded();
+
         const range = key instanceof FDBKeyRange ? key : FDBKeyRange.only(key);
 
         const deletedRecords: Record[] = [];
@@ -85,7 +114,9 @@ class RecordStore {
         return deletedRecords;
     }
 
-    public clear() {
+    public async clear() {
+        await this.ensureLoaded();
+
         const deletedRecords = this.records.slice();
         this.records = [];
         return deletedRecords;
@@ -93,46 +124,59 @@ class RecordStore {
 
     public values(range?: FDBKeyRange, direction: "next" | "prev" = "next") {
         return {
-            [Symbol.iterator]: () => {
-                let i: number;
-                if (direction === "next") {
-                    i = 0;
-                    if (range !== undefined && range.lower !== undefined) {
-                        while (this.records[i] !== undefined) {
-                            const cmpResult = cmp(
-                                this.records[i].key,
-                                range.lower,
-                            );
-                            if (
-                                cmpResult === 1 ||
-                                (cmpResult === 0 && !range.lowerOpen)
-                            ) {
-                                break;
+            [Symbol.asyncIterator]: () => {
+                const init = async () => {
+                    await this.ensureLoaded();
+
+                    let i: number;
+                    if (direction === "next") {
+                        i = 0;
+                        if (range !== undefined && range.lower !== undefined) {
+                            while (this.records[i] !== undefined) {
+                                const cmpResult = cmp(
+                                    this.records[i].key,
+                                    range.lower,
+                                );
+                                if (
+                                    cmpResult === 1 ||
+                                    (cmpResult === 0 && !range.lowerOpen)
+                                ) {
+                                    break;
+                                }
+                                i += 1;
                             }
-                            i += 1;
+                        }
+                    } else {
+                        i = this.records.length - 1;
+                        if (range !== undefined && range.upper !== undefined) {
+                            while (this.records[i] !== undefined) {
+                                const cmpResult = cmp(
+                                    this.records[i].key,
+                                    range.upper,
+                                );
+                                if (
+                                    cmpResult === -1 ||
+                                    (cmpResult === 0 && !range.upperOpen)
+                                ) {
+                                    break;
+                                }
+                                i -= 1;
+                            }
                         }
                     }
-                } else {
-                    i = this.records.length - 1;
-                    if (range !== undefined && range.upper !== undefined) {
-                        while (this.records[i] !== undefined) {
-                            const cmpResult = cmp(
-                                this.records[i].key,
-                                range.upper,
-                            );
-                            if (
-                                cmpResult === -1 ||
-                                (cmpResult === 0 && !range.upperOpen)
-                            ) {
-                                break;
-                            }
-                            i -= 1;
-                        }
-                    }
+                    return i;
                 }
 
+                let i: number!;
+                let isInit = false;
+
                 return {
-                    next: () => {
+                    next: async () => {
+                        if (!isInit) {
+                            i = await init();
+                            isInit = true;
+                        }
+
                         let done;
                         let value;
                         if (direction === "next") {
