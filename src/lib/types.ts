@@ -37,7 +37,7 @@ export interface Record {
 }
 
 export interface RequestObj {
-    operation: () => void;
+    operation: () => void | Promise<void>;
     request?: FDBRequest | undefined;
     source?: any;
 }

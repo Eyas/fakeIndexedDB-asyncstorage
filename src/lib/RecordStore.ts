@@ -23,7 +23,9 @@ class RecordStore {
     private async ensureLoaded() {
         if (this.loaded) return;
 
-        const serializedRecords = await AsyncStorage.getItem(Key(this.uniqueId));
+        const serializedRecords = await AsyncStorage.getItem(
+            Key(this.uniqueId)
+        );
         if (serializedRecords === null) return;
 
         // TODO(eyas): Deserialize records more reliably.
@@ -31,6 +33,12 @@ class RecordStore {
 
         if (!deserialized || !(deserialized instanceof Array)) return;
         this.records.push(...deserialized);
+    }
+
+    private async reflectUpdate() {
+        // TODO(eyas): Serialzie records more reliably.
+        const serialized = JSON.stringify(this.records);
+        await AsyncStorage.setItem(Key(this.uniqueId), serialized);
     }
 
     public async get(key: Key | FDBKeyRange) {
@@ -73,6 +81,7 @@ class RecordStore {
         }
 
         this.records.splice(i, 0, newRecord);
+        await this.reflectUpdate();
     }
 
     public async delete(key: Key) {
@@ -90,6 +99,9 @@ class RecordStore {
             }
             deletedRecords.push(this.records[idx]);
             this.records.splice(idx, 1);
+        }
+        if (deletedRecords.length > 0) {
+            await this.reflectUpdate();
         }
         return deletedRecords;
     }
@@ -111,6 +123,10 @@ class RecordStore {
             return !shouldDelete;
         });
 
+        if (deletedRecords.length > 0) {
+            await this.reflectUpdate();
+        }
+
         return deletedRecords;
     }
 
@@ -119,6 +135,11 @@ class RecordStore {
 
         const deletedRecords = this.records.slice();
         this.records = [];
+
+        if (deletedRecords.length > 0) {
+            await this.reflectUpdate();
+        }
+
         return deletedRecords;
     }
 
@@ -135,7 +156,7 @@ class RecordStore {
                             while (this.records[i] !== undefined) {
                                 const cmpResult = cmp(
                                     this.records[i].key,
-                                    range.lower,
+                                    range.lower
                                 );
                                 if (
                                     cmpResult === 1 ||
@@ -152,7 +173,7 @@ class RecordStore {
                             while (this.records[i] !== undefined) {
                                 const cmpResult = cmp(
                                     this.records[i].key,
-                                    range.upper,
+                                    range.upper
                                 );
                                 if (
                                     cmpResult === -1 ||
@@ -165,9 +186,9 @@ class RecordStore {
                         }
                     }
                     return i;
-                }
+                };
 
-                let i: number!;
+                let i!: number;
                 let isInit = false;
 
                 return {

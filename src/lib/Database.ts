@@ -1,5 +1,6 @@
 import FDBDatabase from "../FDBDatabase.js";
 import FDBTransaction from "../FDBTransaction.js";
+import { AsyncStringMap } from "./asyncMap.js";
 import ObjectStore from "./ObjectStore.js";
 import { queueTask } from "./scheduling.js";
 
@@ -7,15 +8,30 @@ import { queueTask } from "./scheduling.js";
 class Database {
     public deletePending = false;
     public readonly transactions: FDBTransaction[] = [];
-    public readonly rawObjectStores: Map<string, ObjectStore> = new Map();
+    public readonly rawObjectStores: AsyncStringMap<ObjectStore>;
     public connections: FDBDatabase[] = [];
 
     public readonly name: string;
     public version: number;
 
     constructor(name: string, version: number) {
+        const self = this;
         this.name = name;
         this.version = version;
+        this.rawObjectStores = new AsyncStringMap(
+            `FIDB:AsyncStorage/v0/rawObjectStores/${this.name}`,
+            function construct(s) {
+                const { name, keyPath, autoIncrement } = JSON.parse(s);
+                return new ObjectStore(self, name, keyPath, autoIncrement);
+            },
+            function save(s) {
+                return JSON.stringify({
+                    name: s.name,
+                    keyPath: s.keyPath,
+                    autoIncrement: s.autoIncrement,
+                });
+            }
+        );
 
         this.processTransactions = this.processTransactions.bind(this);
     }

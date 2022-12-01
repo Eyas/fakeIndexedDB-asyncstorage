@@ -35,7 +35,7 @@ class FDBTransaction extends FakeEventTarget {
 
     public _scope: Set<string>;
     private _requests: {
-        operation: () => void;
+        operation: () => void | Promise<void>;
         request: FDBRequest;
     }[] = [];
 
@@ -46,7 +46,7 @@ class FDBTransaction extends FakeEventTarget {
         this.mode = mode;
         this.db = db;
         this.objectStoreNames = new FakeDOMStringList(
-            ...Array.from(this._scope).sort(),
+            ...Array.from(this._scope).sort()
         );
     }
 
@@ -153,7 +153,7 @@ class FDBTransaction extends FakeEventTarget {
         return request;
     }
 
-    public _start() {
+    public async _start() {
         this._started = true;
 
         // Remove from request queue - cursor ones will be added back if necessary by cursor.continue and such
@@ -174,12 +174,12 @@ class FDBTransaction extends FakeEventTarget {
             if (!request.source) {
                 // Special requests like indexes that just need to run some code, with error handling already built into
                 // operation
-                operation();
+                await operation();
             } else {
                 let defaultAction;
                 let event;
                 try {
-                    const result = operation();
+                    const result = await operation();
                     request.readyState = "done";
                     request.result = result;
                     request.error = undefined;

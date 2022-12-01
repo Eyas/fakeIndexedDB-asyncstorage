@@ -1,4 +1,5 @@
 import FDBKeyRange from "../FDBKeyRange.js";
+import { AsyncStringMap } from "./asyncMap.js";
 import Database from "./Database.js";
 import { ConstraintError, DataError } from "./errors.js";
 import extractKey from "./extractKey.js";
@@ -12,8 +13,8 @@ import { Key, KeyPath, Record, RollbackLog } from "./types.js";
 class ObjectStore {
     public deleted = false;
     public readonly rawDatabase: Database;
-    public readonly records = new RecordStore();
-    public readonly rawIndexes: Map<string, Index> = new Map();
+    public readonly records: RecordStore;
+    public readonly rawIndexes: AsyncStringMap<Index>;
     public name: string;
     public readonly keyPath: KeyPath | null;
     public readonly autoIncrement: boolean;
@@ -23,9 +24,26 @@ class ObjectStore {
         rawDatabase: Database,
         name: string,
         keyPath: KeyPath | null,
-        autoIncrement: boolean,
+        autoIncrement: boolean
     ) {
+        const self = this;
         this.rawDatabase = rawDatabase;
+        this.records = new RecordStore(`RS/${rawDatabase.name}/${name}`);
+        this.rawIndexes = new AsyncStringMap(
+            `rawIndices/${rawDatabase.name}/${name}`,
+            function construct(str): Index {
+                const { keyPath, multiEntry, unique } = JSON.parse(str);
+                return new Index(self, name, keyPath, multiEntry, unique);
+            },
+            function save(idx: Index): string {
+                return JSON.stringify({
+                    name: idx.name,
+                    keyPath: idx.keyPath,
+                    multiEntry: idx.multiEntry,
+                    unique: idx.unique,
+                });
+            }
+        );
         this.keyGenerator = autoIncrement === true ? new KeyGenerator() : null;
         this.deleted = false;
 
@@ -35,20 +53,20 @@ class ObjectStore {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-retrieving-a-value-from-an-object-store
-    public getKey(key: FDBKeyRange | Key) {
-        const record = this.records.get(key);
+    public async getKey(key: FDBKeyRange | Key) {
+        const record = await this.records.get(key);
 
         return record !== undefined ? structuredClone(record.key) : undefined;
     }
 
     // http://w3c.github.io/IndexedDB/#retrieve-multiple-keys-from-an-object-store
-    public getAllKeys(range: FDBKeyRange, count?: number) {
+    public async getAllKeys(range: FDBKeyRange, count?: number) {
         if (count === undefined || count === 0) {
             count = Infinity;
         }
 
         const records = [];
-        for (const record of this.records.values(range)) {
+        for await (const record of this.records.values(range)) {
             records.push(structuredClone(record.key));
             if (records.length >= count) {
                 break;
@@ -59,20 +77,20 @@ class ObjectStore {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-retrieving-a-value-from-an-object-store
-    public getValue(key: FDBKeyRange | Key) {
-        const record = this.records.get(key);
+    public async getValue(key: FDBKeyRange | Key) {
+        const record = await this.records.get(key);
 
         return record !== undefined ? structuredClone(record.value) : undefined;
     }
 
     // http://w3c.github.io/IndexedDB/#retrieve-multiple-values-from-an-object-store
-    public getAllValues(range: FDBKeyRange, count?: number) {
+    public async getAllValues(range: FDBKeyRange, count?: number) {
         if (count === undefined || count === 0) {
             count = Infinity;
         }
 
         const records = [];
-        for (const record of this.records.values(range)) {
+        for await (const record of this.records.values(range)) {
             records.push(structuredClone(record.value));
             if (records.length >= count) {
                 break;
@@ -83,10 +101,10 @@ class ObjectStore {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-storing-a-record-into-an-object-store
-    public storeRecord(
+    public async storeRecord(
         newRecord: Record,
         noOverwrite: boolean,
-        rollbackLog?: RollbackLog,
+        rollbackLog?: RollbackLog
     ) {
         if (this.keyPath !== null) {
             const key = extractKey(this.keyPath, newRecord.value);
@@ -112,7 +130,7 @@ class ObjectStore {
             if (this.keyPath !== null) {
                 if (Array.isArray(this.keyPath)) {
                     throw new Error(
-                        "Cannot have an array key path in an object store with a key generator",
+                        "Cannot have an array key path in an object store with a key generator"
                     );
                 }
                 let remainingKeyPath = this.keyPath;
@@ -149,24 +167,24 @@ class ObjectStore {
             this.keyGenerator.setIfLarger(newRecord.key);
         }
 
-        const existingRecord = this.records.get(newRecord.key);
+        const existingRecord = await this.records.get(newRecord.key);
         if (existingRecord) {
             if (noOverwrite) {
                 throw new ConstraintError();
             }
-            this.deleteRecord(newRecord.key, rollbackLog);
+            await this.deleteRecord(newRecord.key, rollbackLog);
         }
 
         this.records.add(newRecord);
 
         if (rollbackLog) {
-            rollbackLog.push(() => {
-                this.deleteRecord(newRecord.key);
+            rollbackLog.push(async () => {
+                await this.deleteRecord(newRecord.key);
             });
         }
 
         // Update indexes
-        for (const rawIndex of this.rawIndexes.values()) {
+        for await (const rawIndex of this.rawIndexes.values()) {
             if (rawIndex.initialized) {
                 rawIndex.storeRecord(newRecord);
             }
@@ -176,8 +194,8 @@ class ObjectStore {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-deleting-records-from-an-object-store
-    public deleteRecord(key: Key, rollbackLog?: RollbackLog) {
-        const deletedRecords = this.records.delete(key);
+    public async deleteRecord(key: Key, rollbackLog?: RollbackLog) {
+        const deletedRecords = await this.records.delete(key);
 
         if (rollbackLog) {
             for (const record of deletedRecords) {
@@ -187,14 +205,14 @@ class ObjectStore {
             }
         }
 
-        for (const rawIndex of this.rawIndexes.values()) {
+        for await (const rawIndex of this.rawIndexes.values()) {
             rawIndex.records.deleteByValue(key);
         }
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-clearing-an-object-store
-    public clear(rollbackLog: RollbackLog) {
-        const deletedRecords = this.records.clear();
+    public async clear(rollbackLog: RollbackLog) {
+        const deletedRecords = await this.records.clear();
 
         if (rollbackLog) {
             for (const record of deletedRecords) {
@@ -204,7 +222,7 @@ class ObjectStore {
             }
         }
 
-        for (const rawIndex of this.rawIndexes.values()) {
+        for await (const rawIndex of this.rawIndexes.values()) {
             rawIndex.records.clear();
         }
     }

@@ -15,7 +15,7 @@ class Index {
     // constraint
     public initialized = false;
     public readonly rawObjectStore: ObjectStore;
-    public readonly records = new RecordStore();
+    public readonly records: RecordStore;
     public name: string;
     public readonly keyPath: KeyPath;
     public multiEntry: boolean;
@@ -26,9 +26,12 @@ class Index {
         name: string,
         keyPath: KeyPath,
         multiEntry: boolean,
-        unique: boolean,
+        unique: boolean
     ) {
         this.rawObjectStore = rawObjectStore;
+        this.records = new RecordStore(
+            `IX/${rawObjectStore.rawDatabase.name}/${rawObjectStore.name}/${name}`
+        );
 
         this.name = name;
         this.keyPath = keyPath;
@@ -37,20 +40,20 @@ class Index {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-retrieving-a-value-from-an-index
-    public getKey(key: FDBKeyRange | Key) {
-        const record = this.records.get(key);
+    public async getKey(key: FDBKeyRange | Key) {
+        const record = await this.records.get(key);
 
         return record !== undefined ? record.value : undefined;
     }
 
     // http://w3c.github.io/IndexedDB/#retrieve-multiple-referenced-values-from-an-index
-    public getAllKeys(range: FDBKeyRange, count?: number) {
+    public async getAllKeys(range: FDBKeyRange, count?: number) {
         if (count === undefined || count === 0) {
             count = Infinity;
         }
 
         const records = [];
-        for (const record of this.records.values(range)) {
+        for await (const record of this.records.values(range)) {
             records.push(structuredClone(record.value));
             if (records.length >= count) {
                 break;
@@ -61,8 +64,8 @@ class Index {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#index-referenced-value-retrieval-operation
-    public getValue(key: FDBKeyRange | Key) {
-        const record = this.records.get(key);
+    public async getValue(key: FDBKeyRange | Key) {
+        const record = await this.records.get(key);
 
         return record !== undefined
             ? this.rawObjectStore.getValue(record.value)
@@ -70,13 +73,13 @@ class Index {
     }
 
     // http://w3c.github.io/IndexedDB/#retrieve-multiple-referenced-values-from-an-index
-    public getAllValues(range: FDBKeyRange, count?: number) {
+    public async getAllValues(range: FDBKeyRange, count?: number) {
         if (count === undefined || count === 0) {
             count = Infinity;
         }
 
         const records = [];
-        for (const record of this.records.values(range)) {
+        for await (const record of this.records.values(range)) {
             records.push(this.rawObjectStore.getValue(record.value));
             if (records.length >= count) {
                 break;
@@ -87,7 +90,7 @@ class Index {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-storing-a-record-into-an-object-store (step 7)
-    public storeRecord(newRecord: Record) {
+    public async storeRecord(newRecord: Record) {
         let indexKey;
         try {
             indexKey = extractKey(this.keyPath, newRecord.value);
@@ -124,7 +127,7 @@ class Index {
 
         if (!this.multiEntry || !Array.isArray(indexKey)) {
             if (this.unique) {
-                const existingRecord = this.records.get(indexKey);
+                const existingRecord = await this.records.get(indexKey);
                 if (existingRecord) {
                     throw new ConstraintError();
                 }
@@ -132,7 +135,9 @@ class Index {
         } else {
             if (this.unique) {
                 for (const individualIndexKey of indexKey) {
-                    const existingRecord = this.records.get(individualIndexKey);
+                    const existingRecord = await this.records.get(
+                        individualIndexKey
+                    );
                     if (existingRecord) {
                         throw new ConstraintError();
                     }
@@ -161,10 +166,10 @@ class Index {
         }
 
         transaction._execRequestAsync({
-            operation: () => {
+            operation: async () => {
                 try {
                     // Create index based on current value of objectstore
-                    for (const record of this.rawObjectStore.records.values()) {
+                    for await (const record of this.rawObjectStore.records.values()) {
                         this.storeRecord(record);
                     }
 
