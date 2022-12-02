@@ -534,13 +534,14 @@ class FDBObjectStore {
         rawIndex.deleted = true; // Not sure if this is supposed to happen synchronously
 
         this.transaction._execRequestAsync({
-            operation: () => {
+            operation: async () => {
                 const rawIndex2 = this._rawObjectStore.rawIndexes.get(name);
 
                 // Hack in case another index is given this name before this async request is processed. It'd be better
                 // to have a real unique ID for each index.
                 if (rawIndex === rawIndex2) {
-                    this._rawObjectStore.rawIndexes.delete(name);
+                    await this._rawObjectStore.rawIndexes.delete(name);
+                    await rawIndex.records.clear();
                 }
             },
             source: this,
