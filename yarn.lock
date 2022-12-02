@@ -2208,6 +2208,11 @@ dedent@^0.7.0:
   resolved "https://registry.yarnpkg.com/dedent/-/dedent-0.7.0.tgz#2495ddbaf6eb874abb0e1be9df22d2e5a544326c"
   integrity sha512-Q6fKUPqnAHAyhiUgFU7BUzLiv0kd8saH9al7tnu5Q/okj6dnupxyTgFIBjVzJATdfIAm9NAsvXNzjaKa+bxVyA==
 
+deep-copy-all@^1.3.3:
+  version "1.3.4"
+  resolved "https://registry.yarnpkg.com/deep-copy-all/-/deep-copy-all-1.3.4.tgz#b75bcec2879f8c2abb8aba806c50915603f55554"
+  integrity sha512-5hHGjeggREJDKWBvxVv5RPKtcgKpraHAPu4DcvUcP8usgmK93UzL9oOPsV3h6VCrD2+wmgq0kHha2rnXZHAV3A==
+
 deepmerge@^4.2.2:
   version "4.2.2"
   resolved "https://registry.yarnpkg.com/deepmerge/-/deepmerge-4.2.2.tgz#44d2ea3679b8f4d4ffba33f03d865fc1e7bf4955"
@@ -4557,6 +4562,13 @@ semver@^7.3.5:
   integrity sha512-QlYTucUYOews+WeEujDoEGziz4K6c47V/Bd+LjSSYcA94p+DmINdf7ncaUinThfvZyu13lN9OY1XDxt8C0Tw0g==
   dependencies:
     lru-cache "^6.0.0"
+
+serialize-anything@^1.2.3:
+  version "1.2.3"
+  resolved "https://registry.yarnpkg.com/serialize-anything/-/serialize-anything-1.2.3.tgz#efd042a978a36ee6dea1cbe3d7b9e804c5c348cc"
+  integrity sha512-Jp5zqFoQu8DpL9s/XR0aaf/RC0Z07DZInkbwLkR9+oAOIajOQlZ/pJFc4eVpfY3ObunW7cX361sIZVZMbbPG/g==
+  dependencies:
+    deep-copy-all "^1.3.3"
 
 serialize-javascript@6.0.0:
   version "6.0.0"

@@ -1,3 +1,4 @@
+import { deserialize, serialize } from "serialize-anything";
 import FDBKeyRange from "../FDBKeyRange.js";
 import {
     getByKey,
@@ -31,16 +32,14 @@ class RecordStore {
         );
         if (serializedRecords === null) return;
 
-        // TODO(eyas): Deserialize records more reliably.
-        const deserialized = JSON.parse(serializedRecords) as unknown;
+        const deserialized = deserialize(serializedRecords);
 
         if (!deserialized || !(deserialized instanceof Array)) return;
         this.records.push(...deserialized);
     }
 
     private async reflectUpdate() {
-        // TODO(eyas): Serialzie records more reliably.
-        const serialized = JSON.stringify(this.records);
+        const serialized = serialize(this.records);
         await this.storage.setItem(ComputeKey(this.uniqueId), serialized);
     }
 

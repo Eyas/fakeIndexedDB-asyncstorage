@@ -48,6 +48,7 @@ export class AsyncStringMap<V> {
         const m = makeMarshallers(storage, keyPrefix, _construct, _save);
         this.construct = m.construct;
         this.save = m.save;
+        this.remove = m.remove;
     }
 
     private loaded = false;
@@ -55,6 +56,7 @@ export class AsyncStringMap<V> {
 
     private construct: (key: string) => Promise<V>;
     private save: (key: string, val: V) => Promise<void>;
+    private remove: (key: string) => Promise<void>;
 
     private async loadRecords() {
         if (this.loaded) return;
@@ -109,8 +111,16 @@ export class AsyncStringMap<V> {
 
         const shouldUpdateRecords = this.impl.delete(key);
         if (shouldUpdateRecords) {
+            await this.remove(key);
             await this.updateRecords();
         }
+    }
+
+    async clear(): Promise<void> {
+        const keys = await this.keys();
+        await this.storage.removeItem(keysKey(this.keyPrefix));
+        this.impl.clear();
+        await Promise.all(keys.map((key) => this.remove(key)));
     }
 
     async entries(): Promise<readonly [string, V][]> {
@@ -211,9 +221,20 @@ export class AsyncStringMap2<V> {
 
     async delete(key: string): Promise<void> {
         const shouldUpdateRecords = this.impl.delete(key);
+
         if (shouldUpdateRecords) {
+            await this.marshaller.remove(key);
             await this.updateRecords();
         }
+    }
+
+    async clear(): Promise<void> {
+        await this.storage.removeItem(keysKey(this.keyPrefix));
+        const toDelete = Array.from(this.impl.keys()).map((key) =>
+            this.storage.removeItem(valueKey(this.keyPrefix, key))
+        );
+        await Promise.all(toDelete);
+        this.impl.clear();
     }
 
     entries() {
