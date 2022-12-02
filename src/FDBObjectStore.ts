@@ -175,13 +175,13 @@ class FDBObjectStore {
             ...Array.from(transaction._scope).sort()
         );
 
-        transaction._rollbackLog.push(() => {
+        transaction._rollbackLog.push(async () => {
             this._name = oldName;
             this._rawObjectStore.name = oldName;
             this.transaction._objectStoresCache.delete(name);
             this.transaction._objectStoresCache.set(oldName, this);
-            this._rawObjectStore.rawDatabase.rawObjectStores.delete(name);
-            this._rawObjectStore.rawDatabase.rawObjectStores.set(
+            await this._rawObjectStore.rawDatabase.rawObjectStores.delete(name);
+            await this._rawObjectStore.rawDatabase.rawObjectStores.set(
                 oldName,
                 this._rawObjectStore
             );

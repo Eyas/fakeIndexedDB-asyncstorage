@@ -97,13 +97,13 @@ class FDBIndex {
                 .sort()
         );
 
-        transaction._rollbackLog.push(() => {
+        transaction._rollbackLog.push(async () => {
             this._name = oldName;
             this._rawIndex.name = oldName;
             this.objectStore._indexesCache.delete(name);
             this.objectStore._indexesCache.set(oldName, this);
-            this.objectStore._rawObjectStore.rawIndexes.delete(name);
-            this.objectStore._rawObjectStore.rawIndexes.set(
+            await this.objectStore._rawObjectStore.rawIndexes.delete(name);
+            await this.objectStore._rawObjectStore.rawIndexes.set(
                 oldName,
                 this._rawIndex
             );
