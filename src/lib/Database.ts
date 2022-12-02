@@ -29,7 +29,7 @@ class Database {
     public static getConstruct(
         storage: AsyncStorage
     ): (serialized: string) => Promise<Database> {
-        return function (serialized: string): Promise<Database> {
+        return (serialized: string): Promise<Database> => {
             const { name, version } = JSON.parse(serialized);
             assertTypeof(name, "string");
             assertTypeof(version, "number");
@@ -48,12 +48,18 @@ class Database {
             storage,
             keyPrefix: `${STORAGE_PREFIX}/${name}/rawObjectStores/`,
             construct(s) {
-                const { name, keyPath, autoIncrement } = JSON.parse(s);
-                return ObjectStore.build(db, name, keyPath, autoIncrement);
+                const { objectStoreName, keyPath, autoIncrement } =
+                    JSON.parse(s);
+                return ObjectStore.build(
+                    db,
+                    objectStoreName,
+                    keyPath,
+                    autoIncrement
+                );
             },
             save(s) {
                 return JSON.stringify({
-                    name: s.name,
+                    objectStoreName: s.name,
                     keyPath: s.keyPath,
                     autoIncrement: s.autoIncrement,
                 });

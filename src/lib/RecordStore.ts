@@ -152,13 +152,13 @@ class RecordStore {
                 const init = async () => {
                     await this.ensureLoaded();
 
-                    let i: number;
+                    let i_: number;
                     if (direction === "next") {
-                        i = 0;
+                        i_ = 0;
                         if (range !== undefined && range.lower !== undefined) {
-                            while (this.records[i] !== undefined) {
+                            while (this.records[i_] !== undefined) {
                                 const cmpResult = cmp(
-                                    this.records[i].key,
+                                    this.records[i_].key,
                                     range.lower
                                 );
                                 if (
@@ -167,15 +167,15 @@ class RecordStore {
                                 ) {
                                     break;
                                 }
-                                i += 1;
+                                i_ += 1;
                             }
                         }
                     } else {
-                        i = this.records.length - 1;
+                        i_ = this.records.length - 1;
                         if (range !== undefined && range.upper !== undefined) {
-                            while (this.records[i] !== undefined) {
+                            while (this.records[i_] !== undefined) {
                                 const cmpResult = cmp(
-                                    this.records[i].key,
+                                    this.records[i_].key,
                                     range.upper
                                 );
                                 if (
@@ -184,11 +184,11 @@ class RecordStore {
                                 ) {
                                     break;
                                 }
-                                i -= 1;
+                                i_ -= 1;
                             }
                         }
                     }
-                    return i;
+                    return i_;
                 };
 
                 let i!: number;

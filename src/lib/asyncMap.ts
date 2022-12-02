@@ -1,3 +1,5 @@
+/* tslint:disable:max-classes-per-file */
+
 import { AsyncStorage } from "./storage";
 
 const LAZY = Symbol("lazy");
@@ -22,7 +24,7 @@ function makeMarshallers<V>(
             if (valStr === null) {
                 throw new Error("unexpected data loss");
             }
-            return await _construct(valStr);
+            return _construct(valStr);
         },
 
         async save(key: string, val: V): Promise<void> {
