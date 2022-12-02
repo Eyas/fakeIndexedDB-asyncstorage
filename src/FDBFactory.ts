@@ -27,6 +27,18 @@ const waitForOthersClosedDelete = async (
         return;
     }
 
+    // cleanup db if we can find it...
+    const db = await databases.get(name);
+    if (db) {
+        Array.from(db.rawObjectStores.values()).map((rawObjectStore) => {
+            const p1 = rawObjectStore.records.clear();
+            const p2a = Array.from(rawObjectStore.rawIndexes.values()).map(
+                (rawIndex) => rawIndex.records.clear()
+            );
+            return Promise.all([p1, ...p2a]);
+        });
+        await db.rawObjectStores.clear();
+    }
     await databases.delete(name);
 
     cb(null);
@@ -193,6 +205,12 @@ const openDatabase = async (
     cb: (err: Error | null, connection?: FDBDatabase) => void
 ) => {
     let db = await databases.get(name);
+    while (db && db.deletePending) {
+        // yield control
+        await new Promise<void>((resolve) => queueTask(resolve));
+        db = await databases.get(name);
+    }
+
     if (db === undefined) {
         db = await Database.build(storage, name, 0);
         databases.set(name, db);

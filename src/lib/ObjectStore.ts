@@ -14,11 +14,20 @@ function RawIndexesBuilder(
     storage: AsyncStorage,
     objectStore: ObjectStore
 ): AsyncStringMap2Builder<Index> {
+    type DiskFormat = {
+        indexName: string;
+        keyPath: KeyPath;
+        multiEntry: boolean;
+        unique: boolean;
+    };
+
     return {
         storage,
         keyPrefix: `${STORAGE_PREFIX}/raw_indexes/${objectStore.rawDatabase.name}/store/${objectStore.name}/`,
         construct(str): Index {
-            const { keyPath, multiEntry, unique, indexName } = JSON.parse(str);
+            const { keyPath, multiEntry, unique, indexName } = JSON.parse(
+                str
+            ) as DiskFormat;
             return new Index(
                 objectStore,
                 indexName,
@@ -28,12 +37,13 @@ function RawIndexesBuilder(
             );
         },
         save(idx: Index): string {
-            return JSON.stringify({
+            const diskFormat: DiskFormat = {
                 indexName: idx.name,
                 keyPath: idx.keyPath,
                 multiEntry: idx.multiEntry,
                 unique: idx.unique,
-            });
+            };
+            return JSON.stringify(diskFormat);
         },
     };
 }

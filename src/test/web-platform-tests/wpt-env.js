@@ -6,19 +6,19 @@ const m = new Map();
 const storage = {
     getItem: function (key) {
         return new Promise((resolve, reject) => {
-            setTimeout(() => {
+            setImmediate(() => {
                 const v = m.get(key);
                 const vv = v === undefined ? null : v;
                 resolve(vv);
-            }, 2);
+            });
         });
     },
     setItem: function (key, value) {
-        return new Promise((resolve, rjeect) => {
-            setTimeout(() => {
+        return new Promise((resolve, reject) => {
+            setImmediate(() => {
                 m.set(key, value);
                 resolve();
-            }, 2);
+            });
         });
     },
     removeItem: function (key) {

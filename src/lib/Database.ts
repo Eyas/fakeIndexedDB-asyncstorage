@@ -1,9 +1,11 @@
+import { deserialize, serialize } from "serialize-anything";
 import FDBDatabase from "../FDBDatabase.js";
 import FDBTransaction from "../FDBTransaction.js";
 import { AsyncStringMap2 } from "./asyncMap.js";
 import ObjectStore from "./ObjectStore.js";
 import { queueTask } from "./scheduling.js";
 import { AsyncStorage, STORAGE_PREFIX } from "./storage.js";
+import { KeyPath } from "./types.js";
 
 type TypeOfMap = {
     string: string;
@@ -43,13 +45,20 @@ class Database {
         name: string,
         version: number
     ) {
+        type DiskFormat = {
+            objectStoreName: string;
+            keyPath: KeyPath | null;
+            autoIncrement: boolean;
+        };
+
         const db: Database = new Database(name, version, null!, storage);
         db.rawObjectStores = await AsyncStringMap2.construct({
             storage,
             keyPrefix: `${STORAGE_PREFIX}/${name}/rawObjectStores/`,
             construct(s) {
-                const { objectStoreName, keyPath, autoIncrement } =
-                    JSON.parse(s);
+                const { objectStoreName, keyPath, autoIncrement } = deserialize(
+                    s
+                ) as DiskFormat;
                 return ObjectStore.build(
                     db,
                     objectStoreName,
@@ -58,11 +67,12 @@ class Database {
                 );
             },
             save(s) {
-                return JSON.stringify({
+                const diskFormat: DiskFormat = {
                     objectStoreName: s.name,
                     keyPath: s.keyPath,
                     autoIncrement: s.autoIncrement,
-                });
+                };
+                return serialize(diskFormat);
             },
         });
         return db;
