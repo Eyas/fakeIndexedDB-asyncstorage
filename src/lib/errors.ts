@@ -24,80 +24,70 @@ const messages = {
 
 export class AbortError extends Error {
     constructor(message = messages.AbortError) {
-        super();
+        super(message);
         this.name = "AbortError";
-        this.message = message;
     }
 }
 
 export class ConstraintError extends Error {
     constructor(message = messages.ConstraintError) {
-        super();
+        super(message);
         this.name = "ConstraintError";
-        this.message = message;
     }
 }
 
 export class DataCloneError extends Error {
     constructor(message = messages.DataCloneError) {
-        super();
+        super(message);
         this.name = "DataCloneError";
-        this.message = message;
     }
 }
 
 export class DataError extends Error {
     constructor(message = messages.DataError) {
-        super();
+        super(message);
         this.name = "DataError";
-        this.message = message;
     }
 }
 
 export class InvalidAccessError extends Error {
     constructor(message = messages.InvalidAccessError) {
-        super();
+        super(message);
         this.name = "InvalidAccessError";
-        this.message = message;
     }
 }
 
 export class InvalidStateError extends Error {
     constructor(message = messages.InvalidStateError) {
-        super();
+        super(message);
         this.name = "InvalidStateError";
-        this.message = message;
     }
 }
 
 export class NotFoundError extends Error {
     constructor(message = messages.NotFoundError) {
-        super();
+        super(message);
         this.name = "NotFoundError";
-        this.message = message;
     }
 }
 
 export class ReadOnlyError extends Error {
     constructor(message = messages.ReadOnlyError) {
-        super();
+        super(message);
         this.name = "ReadOnlyError";
-        this.message = message;
     }
 }
 
 export class TransactionInactiveError extends Error {
     constructor(message = messages.TransactionInactiveError) {
-        super();
+        super(message);
         this.name = "TransactionInactiveError";
-        this.message = message;
     }
 }
 
 export class VersionError extends Error {
     constructor(message = messages.VersionError) {
-        super();
+        super(message);
         this.name = "VersionError";
-        this.message = message;
     }
 }

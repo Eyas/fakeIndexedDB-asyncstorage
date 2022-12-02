@@ -1,5 +1,5 @@
 export { FDBCursor as IDBCursor } from "./FDBCursor.js";
-export { default as IDBCursorWithValue } from "./FDBCursorWithValue.js";
+export { FDBCursorWithValue as IDBCursorWithValue } from "./FDBCursorWithValue.js";
 export { default as IDBDatabase } from "./FDBDatabase.js";
 export { default as IDBFactory } from "./FDBFactory.js";
 export { default as IDBIndex } from "./FDBIndex.js";

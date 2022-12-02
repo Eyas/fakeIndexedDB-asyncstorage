@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import { fake } from "../fake.js";
-import FDBCursorWithValue from "../../FDBCursorWithValue.js";
+import { FDBCursorWithValue } from "../../FDBCursorWithValue.js";
 import FDBDatabase from "../../FDBDatabase.js";
 import FDBFactory from "../../FDBFactory.js";
 import FDBKeyRange from "../../FDBKeyRange.js";

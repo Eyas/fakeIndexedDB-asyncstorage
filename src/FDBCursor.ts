@@ -71,6 +71,24 @@ const makeKeyRange = (
     }
 };
 
+export type CursorBuilder = (
+    source: CursorSource,
+    range: CursorRange,
+    direction?: FDBCursorDirection,
+    request?: FDBRequest,
+    keyOnly?: boolean
+) => FDBCursor;
+
+export const buildCursor: CursorBuilder = (
+    source,
+    range,
+    direction = "next",
+    request,
+    keyOnly = false
+): FDBCursor => {
+    return new FDBCursor(source, range, direction, request, keyOnly);
+};
+
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#cursor
 export class FDBCursor {
     public _request: FDBRequest | undefined;

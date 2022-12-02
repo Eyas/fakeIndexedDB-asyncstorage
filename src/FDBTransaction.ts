@@ -1,3 +1,5 @@
+import { buildCursor } from "./FDBCursor.js";
+import { buildCursorWithValue } from "./FDBCursorWithValue.js";
 import FDBDatabase from "./FDBDatabase.js";
 import FDBObjectStore from "./FDBObjectStore.js";
 import FDBRequest from "./FDBRequest.js";
@@ -117,7 +119,12 @@ class FDBTransaction extends FakeEventTarget {
             throw new NotFoundError();
         }
 
-        const objectStore2 = new FDBObjectStore(this, rawObjectStore);
+        const objectStore2 = new FDBObjectStore(
+            this,
+            rawObjectStore,
+            buildCursor,
+            buildCursorWithValue
+        );
         this._objectStoresCache.set(name, objectStore2);
 
         return objectStore2;

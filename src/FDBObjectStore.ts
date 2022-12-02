@@ -1,5 +1,5 @@
-import { FDBCursor } from "./FDBCursor.js";
-import FDBCursorWithValue from "./FDBCursorWithValue.js";
+import type { CursorBuilder } from "./FDBCursor.js"; // No circular deps.
+import type { CursorWithValueBuilder } from "./FDBCursorWithValue.js";
 import FDBIndex from "./FDBIndex.js";
 import FDBKeyRange from "./FDBKeyRange.js";
 import FDBRequest from "./FDBRequest.js";
@@ -98,7 +98,12 @@ class FDBObjectStore {
 
     private _name: string;
 
-    constructor(transaction: FDBTransaction, rawObjectStore: ObjectStore) {
+    constructor(
+        transaction: FDBTransaction,
+        rawObjectStore: ObjectStore,
+        readonly buildCursor: CursorBuilder,
+        readonly buildCursorWithValue: CursorWithValueBuilder
+    ) {
         this._rawObjectStore = rawObjectStore;
 
         this._name = rawObjectStore.name;
@@ -359,7 +364,12 @@ class FDBObjectStore {
         request.source = this;
         request.transaction = this.transaction;
 
-        const cursor = new FDBCursorWithValue(this, range, direction, request);
+        const cursor = this.buildCursorWithValue(
+            this,
+            range,
+            direction,
+            request
+        );
 
         return this.transaction._execRequestAsync({
             operation: cursor._iterate.bind(cursor),
@@ -385,7 +395,7 @@ class FDBObjectStore {
         request.source = this;
         request.transaction = this.transaction;
 
-        const cursor = new FDBCursor(this, range, direction, request, true);
+        const cursor = this.buildCursor(this, range, direction, request, true);
 
         return this.transaction._execRequestAsync({
             operation: cursor._iterate.bind(cursor),
@@ -552,7 +562,7 @@ class FDBObjectStore {
             operation: () => {
                 let count = 0;
 
-                const cursor = new FDBCursor(this, key);
+                const cursor = this.buildCursor(this, key);
                 while (cursor._iterate() !== null) {
                     count += 1;
                 }

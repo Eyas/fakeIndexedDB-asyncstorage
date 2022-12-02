@@ -1,5 +1,5 @@
 import { FDBCursor } from "./FDBCursor.js";
-import FDBCursorWithValue from "./FDBCursorWithValue.js";
+import { FDBCursorWithValue } from "./FDBCursorWithValue.js";
 import FDBDatabase from "./FDBDatabase.js";
 import FDBFactory from "./FDBFactory.js";
 import FDBIndex from "./FDBIndex.js";

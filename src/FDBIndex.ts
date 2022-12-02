@@ -1,5 +1,3 @@
-import { FDBCursor } from "./FDBCursor.js";
-import FDBCursorWithValue from "./FDBCursorWithValue.js";
 import FDBKeyRange from "./FDBKeyRange.js";
 import FDBObjectStore from "./FDBObjectStore.js";
 import FDBRequest from "./FDBRequest.js";
@@ -134,7 +132,12 @@ class FDBIndex {
         request.source = this;
         request.transaction = this.objectStore.transaction;
 
-        const cursor = new FDBCursorWithValue(this, range, direction, request);
+        const cursor = this.objectStore.buildCursorWithValue(
+            this,
+            range,
+            direction,
+            request
+        );
 
         return this.objectStore.transaction._execRequestAsync({
             operation: cursor._iterate.bind(cursor),
@@ -162,7 +165,13 @@ class FDBIndex {
         request.source = this;
         request.transaction = this.objectStore.transaction;
 
-        const cursor = new FDBCursor(this, range, direction, request, true);
+        const cursor = this.objectStore.buildCursor(
+            this,
+            range,
+            direction,
+            request,
+            true
+        );
 
         return this.objectStore.transaction._execRequestAsync({
             operation: cursor._iterate.bind(cursor),
@@ -251,7 +260,7 @@ class FDBIndex {
             operation: () => {
                 let count = 0;
 
-                const cursor = new FDBCursor(this, key);
+                const cursor = this.objectStore.buildCursor(this, key);
                 while (cursor._iterate() !== null) {
                     count += 1;
                 }

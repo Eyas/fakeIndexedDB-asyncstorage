@@ -1,12 +1,12 @@
 import { FDBCursor } from "./FDBCursor.js";
-import {
+import type {
     CursorRange,
     CursorSource,
     FDBCursorDirection,
     Value,
 } from "./lib/types.js";
 
-class FDBCursorWithValue extends FDBCursor {
+export class FDBCursorWithValue extends FDBCursor {
     public value: Value = undefined;
 
     constructor(
@@ -23,4 +23,16 @@ class FDBCursorWithValue extends FDBCursor {
     }
 }
 
-export default FDBCursorWithValue;
+export type CursorWithValueBuilder = (
+    source: CursorSource,
+    range: CursorRange,
+    direction?: FDBCursorDirection,
+    request?: any
+) => FDBCursorWithValue;
+
+export const buildCursorWithValue: CursorWithValueBuilder = (
+    source,
+    range,
+    direction,
+    request
+) => new FDBCursorWithValue(source, range, direction, request);

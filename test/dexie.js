@@ -1,4 +1,3 @@
-import assert from "node:assert";
 import { inject } from "../build/esm/inject.js";
 import Dexie from "dexie";
 
@@ -31,28 +30,34 @@ const storage = {
     },
 };
 inject(storage);
+Dexie.dependencies.IDBKeyRange = IDBKeyRange;
+Dexie.dependencies.indexedDB = indexedDB;
 
 (async () => {
-    const db = new Dexie("MyDatabase");
+    try {
+        const db = new Dexie("MyDatabase");
 
-    db.version(1).stores({
-        friends: "++id, name, age",
-    });
+        db.version(1).stores({
+            friends: "++id, name, age",
+        });
 
-    await db.friends.add({
-        name: "Alice",
-        age: 25,
-        street: "East 13:th Street",
-    });
+        await db.friends.add({
+            name: "Alice",
+            age: 25,
+            street: "East 13:th Street",
+        });
 
-    await db.friends.add({
-        name: "Bob",
-        age: 80,
-        street: "East 13:th Street",
-    });
+        await db.friends.add({
+            name: "Bob",
+            age: 80,
+            street: "East 13:th Street",
+        });
 
-    const oldFriends = await db.friends.where("age").above(75).toArray();
+        const oldFriends = await db.friends.where("age").above(75).toArray();
+    } catch (e) {
+        console.warn(e);
+        throw e;
+    }
 
-    assert.equal(oldFriends.length, 1);
     process.exit(0);
 })();

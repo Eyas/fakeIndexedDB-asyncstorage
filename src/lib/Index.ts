@@ -88,7 +88,7 @@ class Index {
             }
         }
 
-        return records;
+        return Promise.all(records);
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-storing-a-record-into-an-object-store (step 7)
