@@ -35,7 +35,13 @@ class RecordStore {
         const deserialized = deserialize(serializedRecords);
 
         if (!deserialized || !(deserialized instanceof Array)) return;
-        this.records.push(...deserialized);
+        for (
+            let chunk = deserialized.splice(0, 10);
+            chunk.length > 0;
+            chunk = deserialized.splice(0, 10)
+        ) {
+            this.records.push(...chunk);
+        }
     }
 
     private async reflectUpdate() {
