@@ -34,7 +34,7 @@ const getEffectiveObjectStore = (cursor: FDBCursor) => {
 const makeKeyRange = (
     range: FDBKeyRange,
     lowers: (Key | undefined)[],
-    uppers: (Key | undefined)[],
+    uppers: (Key | undefined)[]
 ) => {
     // Start with bounds from range
     let lower = range !== undefined ? range.lower : undefined;
@@ -72,7 +72,7 @@ const makeKeyRange = (
 };
 
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#cursor
-class FDBCursor {
+export class FDBCursor {
     public _request: FDBRequest | undefined;
 
     private _gotValue: boolean = false;
@@ -91,7 +91,7 @@ class FDBCursor {
         range: CursorRange,
         direction: FDBCursorDirection = "next",
         request?: FDBRequest,
-        keyOnly: boolean = false,
+        keyOnly: boolean = false
     ) {
         this._range = range;
         this._source = source;
@@ -137,7 +137,7 @@ class FDBCursor {
     }
 
     // https://w3c.github.io/IndexedDB/#iterate-a-cursor
-    public _iterate(key?: Key, primaryKey?: Key): this | null {
+    public async _iterate(key?: Key, primaryKey?: Key): Promise<this | null> {
         const sourceIsObjectStore = this.source instanceof FDBObjectStore;
 
         // Can't use sourceIsObjectStore because TypeScript
@@ -149,7 +149,7 @@ class FDBCursor {
         let foundRecord;
         if (this.direction === "next") {
             const range = makeKeyRange(this._range, [key, this._position], []);
-            for (const record of records.values(range)) {
+            for await (const record of records.values(range)) {
                 const cmpResultKey =
                     key !== undefined ? cmp(record.key, key) : undefined;
                 const cmpResultPosition =
@@ -199,7 +199,7 @@ class FDBCursor {
             // But the performance difference should be small, and that wouldn't work anyway for directions where the
             // value needs to be used (like next and prev).
             const range = makeKeyRange(this._range, [key, this._position], []);
-            for (const record of records.values(range)) {
+            for await (const record of records.values(range)) {
                 if (key !== undefined) {
                     if (cmp(record.key, key) === -1) {
                         continue;
@@ -220,7 +220,7 @@ class FDBCursor {
             }
         } else if (this.direction === "prev") {
             const range = makeKeyRange(this._range, [], [key, this._position]);
-            for (const record of records.values(range, "prev")) {
+            for await (const record of records.values(range, "prev")) {
                 const cmpResultKey =
                     key !== undefined ? cmp(record.key, key) : undefined;
                 const cmpResultPosition =
@@ -268,7 +268,7 @@ class FDBCursor {
         } else if (this.direction === "prevunique") {
             let tempRecord;
             const range = makeKeyRange(this._range, [], [key, this._position]);
-            for (const record of records.values(range, "prev")) {
+            for await (const record of records.values(range, "prev")) {
                 if (key !== undefined) {
                     if (cmp(record.key, key) === 1) {
                         continue;
@@ -289,7 +289,7 @@ class FDBCursor {
             }
 
             if (tempRecord) {
-                foundRecord = records.get(tempRecord.key);
+                foundRecord = await records.get(tempRecord.key);
             }
         }
 
@@ -335,7 +335,7 @@ class FDBCursor {
                     }
                     const value =
                         this.source.objectStore._rawObjectStore.getValue(
-                            foundRecord.value,
+                            foundRecord.value
                         );
                     (this as any).value = structuredClone(value);
                 }
@@ -407,7 +407,7 @@ class FDBCursor {
                 effectiveObjectStore._rawObjectStore,
                 record,
                 false,
-                transaction._rollbackLog,
+                transaction._rollbackLog
             ),
             source: this,
         });
@@ -613,7 +613,7 @@ class FDBCursor {
             operation: effectiveObjectStore._rawObjectStore.deleteRecord.bind(
                 effectiveObjectStore._rawObjectStore,
                 effectiveKey,
-                transaction._rollbackLog,
+                transaction._rollbackLog
             ),
             source: this,
         });
@@ -623,5 +623,3 @@ class FDBCursor {
         return "[object IDBCursor]";
     }
 }
-
-export default FDBCursor;

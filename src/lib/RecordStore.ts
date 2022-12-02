@@ -7,24 +7,27 @@ import {
     getIndexByKeyRange,
 } from "./binarySearch.js";
 import cmp from "./cmp.js";
+import { AsyncStorage, STORAGE_PREFIX } from "./storage.js";
 import { Key, Record } from "./types.js";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-function Key(uniqueId: string) {
-    return `FIDB:AsyncStorage/v0/${uniqueId}`;
+function ComputeKey(uniqueId: string) {
+    return `${STORAGE_PREFIX}/recordStore/${uniqueId}`;
 }
 
 class RecordStore {
     private records: Record[] = [];
     private loaded = false;
 
-    constructor(private readonly uniqueId: string) {}
+    constructor(
+        private readonly uniqueId: string,
+        private readonly storage: AsyncStorage
+    ) {}
 
     private async ensureLoaded() {
         if (this.loaded) return;
 
-        const serializedRecords = await AsyncStorage.getItem(
-            Key(this.uniqueId)
+        const serializedRecords = await this.storage.getItem(
+            ComputeKey(this.uniqueId)
         );
         if (serializedRecords === null) return;
 
@@ -38,7 +41,7 @@ class RecordStore {
     private async reflectUpdate() {
         // TODO(eyas): Serialzie records more reliably.
         const serialized = JSON.stringify(this.records);
-        await AsyncStorage.setItem(Key(this.uniqueId), serialized);
+        await this.storage.setItem(ComputeKey(this.uniqueId), serialized);
     }
 
     public async get(key: Key | FDBKeyRange) {

@@ -35,7 +35,7 @@ class FDBTransaction extends FakeEventTarget {
 
     public _scope: Set<string>;
     private _requests: {
-        operation: () => void | Promise<void>;
+        operation: () => unknown | Promise<unknown>;
         request: FDBRequest;
     }[] = [];
 

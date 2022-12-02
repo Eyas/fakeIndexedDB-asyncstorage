@@ -4,6 +4,7 @@ import { ConstraintError } from "./errors.js";
 import extractKey from "./extractKey.js";
 import ObjectStore from "./ObjectStore.js";
 import RecordStore from "./RecordStore.js";
+import { AsyncStorage } from "./storage.js";
 import structuredClone from "./structuredClone.js";
 import { Key, KeyPath, Record } from "./types.js";
 import valueToKey from "./valueToKey.js";
@@ -30,7 +31,8 @@ class Index {
     ) {
         this.rawObjectStore = rawObjectStore;
         this.records = new RecordStore(
-            `IX/${rawObjectStore.rawDatabase.name}/${rawObjectStore.name}/${name}`
+            `IX/${rawObjectStore.rawDatabase.name}/${rawObjectStore.name}/${name}`,
+            rawObjectStore.rawDatabase.storage
         );
 
         this.name = name;

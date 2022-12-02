@@ -1,4 +1,4 @@
-import FDBCursor from "./FDBCursor.js";
+import { FDBCursor } from "./FDBCursor.js";
 import FDBCursorWithValue from "./FDBCursorWithValue.js";
 import FDBKeyRange from "./FDBKeyRange.js";
 import FDBObjectStore from "./FDBObjectStore.js";
@@ -92,11 +92,11 @@ class FDBIndex {
                 .filter((indexName) => {
                     const index =
                         this.objectStore._rawObjectStore.rawIndexes.get(
-                            indexName,
+                            indexName
                         );
                     return index && !index.deleted;
                 })
-                .sort(),
+                .sort()
         );
 
         transaction._rollbackLog.push(() => {
@@ -107,10 +107,10 @@ class FDBIndex {
             this.objectStore._rawObjectStore.rawIndexes.delete(name);
             this.objectStore._rawObjectStore.rawIndexes.set(
                 oldName,
-                this._rawIndex,
+                this._rawIndex
             );
             this.objectStore.indexNames = new FakeDOMStringList(
-                ...oldIndexNames,
+                ...oldIndexNames
             );
         });
     }
@@ -119,7 +119,7 @@ class FDBIndex {
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#widl-IDBIndex-openCursor-IDBRequest-any-range-IDBCursorDirection-direction
     public openCursor(
         range?: FDBKeyRange | Key | null | undefined,
-        direction?: FDBCursorDirection,
+        direction?: FDBCursorDirection
     ) {
         confirmActiveTransaction(this);
 
@@ -147,7 +147,7 @@ class FDBIndex {
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#widl-IDBIndex-openKeyCursor-IDBRequest-any-range-IDBCursorDirection-direction
     public openKeyCursor(
         range?: FDBKeyRange | Key | null | undefined,
-        direction?: FDBCursorDirection,
+        direction?: FDBCursorDirection
     ) {
         confirmActiveTransaction(this);
 
@@ -197,7 +197,7 @@ class FDBIndex {
             operation: this._rawIndex.getAllValues.bind(
                 this._rawIndex,
                 range,
-                count,
+                count
             ),
             source: this,
         });
@@ -230,7 +230,7 @@ class FDBIndex {
             operation: this._rawIndex.getAllKeys.bind(
                 this._rawIndex,
                 range,
-                count,
+                count
             ),
             source: this,
         });

@@ -1,48 +1,102 @@
 import FDBKeyRange from "../FDBKeyRange.js";
-import { AsyncStringMap } from "./asyncMap.js";
+import { AsyncStringMap2, AsyncStringMap2Builder } from "./asyncMap.js";
 import Database from "./Database.js";
 import { ConstraintError, DataError } from "./errors.js";
 import extractKey from "./extractKey.js";
 import Index from "./Index.js";
 import KeyGenerator from "./KeyGenerator.js";
 import RecordStore from "./RecordStore.js";
+import { AsyncStorage, STORAGE_PREFIX } from "./storage.js";
 import structuredClone from "./structuredClone.js";
 import { Key, KeyPath, Record, RollbackLog } from "./types.js";
+
+function RawIndexesBuilder(
+    storage: AsyncStorage,
+    objectStore: ObjectStore
+): AsyncStringMap2Builder<Index> {
+    return {
+        storage,
+        keyPrefix: `${STORAGE_PREFIX}/raw_indexes/${objectStore.rawDatabase.name}/store/${objectStore.name}/`,
+        construct(str): Index {
+            const { keyPath, multiEntry, unique, indexName } = JSON.parse(str);
+            return new Index(
+                objectStore,
+                indexName,
+                keyPath,
+                multiEntry,
+                unique
+            );
+        },
+        save(idx: Index): string {
+            return JSON.stringify({
+                indexName: idx.name,
+                keyPath: idx.keyPath,
+                multiEntry: idx.multiEntry,
+                unique: idx.unique,
+            });
+        },
+    };
+}
 
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-object-store
 class ObjectStore {
     public deleted = false;
     public readonly rawDatabase: Database;
     public readonly records: RecordStore;
-    public readonly rawIndexes: AsyncStringMap<Index>;
     public name: string;
     public readonly keyPath: KeyPath | null;
     public readonly autoIncrement: boolean;
     public readonly keyGenerator: KeyGenerator | null;
 
-    constructor(
+    public static async build(
+        db: Database,
+        storeName: string,
+        keyPath: KeyPath | null,
+        autoIncrement: boolean
+    ): Promise<ObjectStore> {
+        const objectStore = new ObjectStore(
+            db,
+            storeName,
+            keyPath,
+            autoIncrement,
+            null!
+        );
+        objectStore.rawIndexes = await AsyncStringMap2.construct(
+            RawIndexesBuilder(db.storage, objectStore)
+        );
+        return objectStore;
+    }
+
+    public static createNew(
+        db: Database,
+        storeName: string,
+        keyPath: KeyPath | null,
+        autoIncrement: boolean
+    ): ObjectStore {
+        const objectStore = new ObjectStore(
+            db,
+            storeName,
+            keyPath,
+            autoIncrement,
+            null!
+        );
+        objectStore.rawIndexes = AsyncStringMap2.createNew(
+            RawIndexesBuilder(db.storage, objectStore)
+        );
+        return objectStore;
+    }
+
+    private constructor(
         rawDatabase: Database,
         name: string,
         keyPath: KeyPath | null,
-        autoIncrement: boolean
+        autoIncrement: boolean,
+        public rawIndexes: AsyncStringMap2<Index>
     ) {
-        const self = this;
         this.rawDatabase = rawDatabase;
-        this.records = new RecordStore(`RS/${rawDatabase.name}/${name}`);
-        this.rawIndexes = new AsyncStringMap(
-            `rawIndices/${rawDatabase.name}/${name}`,
-            function construct(str): Index {
-                const { keyPath, multiEntry, unique } = JSON.parse(str);
-                return new Index(self, name, keyPath, multiEntry, unique);
-            },
-            function save(idx: Index): string {
-                return JSON.stringify({
-                    name: idx.name,
-                    keyPath: idx.keyPath,
-                    multiEntry: idx.multiEntry,
-                    unique: idx.unique,
-                });
-            }
+        this.records = new RecordStore(
+            `RS/${rawDatabase.name}/${name}`,
+            rawDatabase.storage
         );
         this.keyGenerator = autoIncrement === true ? new KeyGenerator() : null;
         this.deleted = false;

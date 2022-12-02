@@ -21,25 +21,17 @@
         "shim"
     ],
     "type": "module",
-    "main": "./build/cjs/index.js",
     "module": "./build/esm/index.js",
     "exports": {
         ".": {
-            "import": "./build/esm/index.js",
-            "require": "./build/cjs/index.js"
-        },
-        "./auto": {
-            "import": "./auto/index.mjs",
-            "require": "./auto/index.js"
-        },
-        "./auto.cjs": "./auto.cjs"
+            "import": "./build/esm/index.js"
+        }
     },
     "types": "./types.d.ts",
     "scripts": {
-        "build": "rm -rf build && yarn run build-esm && yarn run build-cjs",
-        "build-cjs": "BABEL_ENV=cjs babel src --out-dir build/cjs --extensions \".ts\" && echo '{\"type\":\"commonjs\"}' > build/cjs/package.json",
+        "build": "rm -rf build && yarn run build-esm",
         "build-esm": "babel src --out-dir build/esm --extensions \".ts\"",
-        "prepublishOnly": "yarn run build && rm -rf build/cjs/test && rm -rf build/esm/test",
+        "prepublishOnly": "yarn run build && rm -rf build/esm/test",
         "lint": "tslint  'src/**/*.ts' && yarn run tsc",
         "prettier": "prettier --write *.json  'src/**/*.{js,ts}'",
         "test-jest": "node --experimental-vm-modules node_modules/.bin/jest test/jest.js",

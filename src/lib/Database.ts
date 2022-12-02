@@ -43,22 +43,22 @@ class Database {
         name: string,
         version: number
     ) {
-        const db: Database = new Database(name, version, null!);
-        db.rawObjectStores = await AsyncStringMap2.construct(
+        const db: Database = new Database(name, version, null!, storage);
+        db.rawObjectStores = await AsyncStringMap2.construct({
             storage,
-            `${STORAGE_PREFIX}/${name}/rawObjectStores/`,
-            function construct(s) {
+            keyPrefix: `${STORAGE_PREFIX}/${name}/rawObjectStores/`,
+            construct(s) {
                 const { name, keyPath, autoIncrement } = JSON.parse(s);
-                return new ObjectStore(db, name, keyPath, autoIncrement);
+                return ObjectStore.build(db, name, keyPath, autoIncrement);
             },
-            function save(s) {
+            save(s) {
                 return JSON.stringify({
                     name: s.name,
                     keyPath: s.keyPath,
                     autoIncrement: s.autoIncrement,
                 });
-            }
-        );
+            },
+        });
         return db;
     }
 
@@ -72,9 +72,9 @@ class Database {
     constructor(
         name: string,
         version: number,
-        public rawObjectStores: AsyncStringMap2<ObjectStore>
+        public rawObjectStores: AsyncStringMap2<ObjectStore>,
+        public readonly storage: AsyncStorage
     ) {
-        const self = this;
         this.name = name;
         this.version = version;
         this.processTransactions = this.processTransactions.bind(this);

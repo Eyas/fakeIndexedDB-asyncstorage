@@ -134,13 +134,20 @@ export class AsyncStringMap<V> {
     }
 }
 
+export interface AsyncStringMap2Builder<V> {
+    storage: AsyncStorage;
+    keyPrefix: string;
+    construct: (s: string) => V | Promise<V>;
+    save: (v: V) => string | Promise<string>;
+}
+
 export class AsyncStringMap2<V> {
-    public static async construct<V>(
-        storage: AsyncStorage,
-        keyPrefix: string,
-        c: (s: string) => V | Promise<V>,
-        s: (v: V) => string | Promise<string>
-    ) {
+    public static async construct<V>({
+        storage,
+        keyPrefix,
+        construct: c,
+        save: s,
+    }: AsyncStringMap2Builder<V>) {
         const allKeysStr = await storage.getItem(keysKey(keyPrefix));
         const allKeys: string[] = allKeysStr ? JSON.parse(allKeysStr) : [];
 
@@ -152,6 +159,18 @@ export class AsyncStringMap2<V> {
             )
         );
         const map = new Map(entries);
+
+        return new AsyncStringMap2(storage, keyPrefix, m, map);
+    }
+
+    public static createNew<V>({
+        storage,
+        keyPrefix,
+        construct: c,
+        save: s,
+    }: AsyncStringMap2Builder<V>) {
+        const m = makeMarshallers(storage, keyPrefix, c, s);
+        const map = new Map();
 
         return new AsyncStringMap2(storage, keyPrefix, m, map);
     }
@@ -172,6 +191,10 @@ export class AsyncStringMap2<V> {
 
     get(key: string): V | undefined {
         return this.impl.get(key);
+    }
+
+    has(key: string): boolean {
+        return this.impl.has(key);
     }
 
     async set(key: string, value: V): Promise<void> {

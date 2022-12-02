@@ -36,8 +36,8 @@ export interface Record {
     value: Key | Value; // For indexes, will be Key. For object stores, will be Value.
 }
 
-export interface RequestObj {
-    operation: () => void | Promise<void>;
+export interface RequestObj<T = unknown> {
+    operation: () => T | Promise<T>;
     request?: FDBRequest | undefined;
     source?: any;
 }

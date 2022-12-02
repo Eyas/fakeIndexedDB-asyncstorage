@@ -1,4 +1,4 @@
-import FDBCursor from "./FDBCursor.js";
+import { FDBCursor } from "./FDBCursor.js";
 import FDBIndex from "./FDBIndex.js";
 import FDBObjectStore from "./FDBObjectStore.js";
 import FDBTransaction from "./FDBTransaction.js";

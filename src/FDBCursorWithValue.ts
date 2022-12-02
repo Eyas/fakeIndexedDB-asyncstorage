@@ -1,4 +1,4 @@
-import FDBCursor from "./FDBCursor.js";
+import { FDBCursor } from "./FDBCursor.js";
 import {
     CursorRange,
     CursorSource,
@@ -13,7 +13,7 @@ class FDBCursorWithValue extends FDBCursor {
         source: CursorSource,
         range: CursorRange,
         direction?: FDBCursorDirection,
-        request?: any,
+        request?: any
     ) {
         super(source, range, direction, request);
     }

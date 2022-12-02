@@ -1,7 +1,6 @@
 // Sanity check that imports work
 
 import {
-    indexedDB,
     IDBCursor,
     IDBCursorWithValue,
     IDBDatabase,
