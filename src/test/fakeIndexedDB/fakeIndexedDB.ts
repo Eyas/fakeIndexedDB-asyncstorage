@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import fakeIndexedDB from "../../fakeIndexedDB.js";
+import { fake } from "../fake.js";
 import FDBCursorWithValue from "../../FDBCursorWithValue.js";
 import FDBDatabase from "../../FDBDatabase.js";
 import FDBFactory from "../../FDBFactory.js";
@@ -8,6 +8,11 @@ import FakeDOMStringList from "../../lib/FakeDOMStringList.js";
 import { TransactionMode } from "../../lib/types.js";
 
 describe("fakeIndexedDB Tests", () => {
+    let fakeIndexedDB: FDBFactory;
+    beforeEach(() => {
+        fakeIndexedDB = fake();
+    });
+
     describe("Transaction Lifetime", () => {
         it("Transactions should be activated from queue based on mode", (done) => {
             const request = fakeIndexedDB.open("test" + Math.random());
@@ -715,7 +720,7 @@ describe("fakeIndexedDB Tests", () => {
     });
 
     it("confirm openCursor works (issue #60)", (done) => {
-        const indexedDB = new FDBFactory();
+        const indexedDB = fake();
 
         function idb(): Promise<FDBDatabase> {
             return new Promise((resolve, reject) => {
@@ -779,7 +784,7 @@ describe("fakeIndexedDB Tests", () => {
     });
 
     it("can use deep index keypaths on undefined objects", async () => {
-        const indexedDB = new FDBFactory();
+        const indexedDB = fake();
 
         function idb(): Promise<FDBDatabase> {
             return new Promise((resolve, reject) => {

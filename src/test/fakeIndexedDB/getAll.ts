@@ -1,15 +1,19 @@
 import * as assert from "assert";
-import fakeIndexedDB from "../../fakeIndexedDB.js";
+import { fake } from "../fake.js";
 import FDBDatabase from "../../FDBDatabase.js";
 import FDBKeyRange from "../../FDBKeyRange.js";
 import FDBObjectStore from "../../FDBObjectStore.js";
+import FDBFactory from "../../FDBFactory.js";
 
 // Tests taken from https://github.com/dumbmatter/IndexedDB-getAll-shim
 
 let db: FDBDatabase;
 
 describe("getAll", () => {
+    let fakeIndexedDB: FDBFactory;
+
     beforeEach((done) => {
+        fakeIndexedDB = fake();
         const request = fakeIndexedDB.open("test" + Math.random());
         request.onupgradeneeded = (e) => {
             const db2: FDBDatabase = e.target.result;
@@ -142,7 +146,7 @@ describe("getAll", () => {
 
 describe("getAllKeys", () => {
     beforeEach((done) => {
-        const request = fakeIndexedDB.open("test" + Math.random());
+        const request = fake().open("test" + Math.random());
         request.onupgradeneeded = (e) => {
             const db2 = e.target.result;
             const store = db2.createObjectStore("store", { keyPath: "key" });
@@ -241,7 +245,7 @@ describe("getAllKeys", () => {
     it("throws InvalidStateError when store has been deleted", (done) => {
         db.close();
         let store: FDBObjectStore;
-        const request = fakeIndexedDB.open(db.name, 2);
+        const request = fake().open(db.name, 2);
         request.onupgradeneeded = (e) => {
             const db2 = e.target.result;
             const tx = e.target.transaction;
