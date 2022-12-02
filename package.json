@@ -34,12 +34,11 @@
         "prepublishOnly": "yarn run build && rm -rf build/esm/test",
         "lint": "tslint  'src/**/*.ts' && yarn run tsc",
         "prettier": "prettier --write *.json  'src/**/*.{js,ts}'",
-        "test-jest": "node --experimental-vm-modules node_modules/.bin/jest test/jest.js",
         "test-mocha": "mocha --timeout 10000 build/esm/test/fakeIndexedDB",
         "build-qunit": "mkdir build/esm/test/indexedDBmock && cp src/test/indexedDBmock/* build/esm/test/indexedDBmock && browserify src/test/indexedDBmock/exports-qunit-bundle.js -o build/esm/test/indexedDBmock/exports-qunit-bundle.js -t [ babelify --presets [ @babel/preset-env ] ]",
         "test-qunit": "yarn run build-qunit && node-qunit-phantomjs build/esm/test/indexedDBmock/index.html",
         "test-w3c": "node src/test/web-platform-tests/run-all.js",
-        "test": "rm -rf build && yarn run lint && yarn run build && yarn run test-jest && node test/test.js && node test/dexie.js && yarn run test-w3c && yarn run test-mocha && yarn run test-qunit",
+        "test": "rm -rf build && yarn run lint && yarn run build && node test/test.js && node test/dexie.js && yarn run test-w3c && yarn run test-mocha && yarn run test-qunit",
         "prepare": "husky install"
     },
     "author": "Jeremy Scheff <jdscheff@gmail.com> (http://dumbmatter.com/)",
