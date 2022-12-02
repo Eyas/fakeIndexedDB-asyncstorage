@@ -1,3 +1,4 @@
+import { deserialize, serialize } from "serialize-anything";
 import FDBKeyRange from "../FDBKeyRange.js";
 import { AsyncStringMap2, AsyncStringMap2Builder } from "./asyncMap.js";
 import Database from "./Database.js";
@@ -25,7 +26,7 @@ function RawIndexesBuilder(
         storage,
         keyPrefix: `${STORAGE_PREFIX}/raw_indexes/${objectStore.rawDatabase.name}/store/${objectStore.name}/`,
         construct(str): Index {
-            const { keyPath, multiEntry, unique, indexName } = JSON.parse(
+            const { keyPath, multiEntry, unique, indexName } = deserialize(
                 str
             ) as DiskFormat;
             return new Index(
@@ -43,7 +44,7 @@ function RawIndexesBuilder(
                 multiEntry: idx.multiEntry,
                 unique: idx.unique,
             };
-            return JSON.stringify(diskFormat);
+            return serialize(diskFormat);
         },
     };
 }
