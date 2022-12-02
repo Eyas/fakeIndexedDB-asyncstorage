@@ -1,28 +1,55 @@
 import FDBDatabase from "../FDBDatabase.js";
 import FDBTransaction from "../FDBTransaction.js";
-import { AsyncStringMap } from "./asyncMap.js";
+import { AsyncStringMap2 } from "./asyncMap.js";
 import ObjectStore from "./ObjectStore.js";
 import { queueTask } from "./scheduling.js";
+import { AsyncStorage, STORAGE_PREFIX } from "./storage.js";
+
+type TypeOfMap = {
+    string: string;
+    number: number;
+};
+
+function assertTypeof<T extends keyof TypeOfMap>(
+    s: unknown,
+    type: T
+): asserts s is TypeOfMap[T] {
+    if (typeof s !== type) throw new Error(`expected ${type}, saw, ${s}`);
+}
 
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-database
 class Database {
     public deletePending = false;
     public readonly transactions: FDBTransaction[] = [];
-    public readonly rawObjectStores: AsyncStringMap<ObjectStore>;
     public connections: FDBDatabase[] = [];
 
     public readonly name: string;
     public version: number;
 
-    constructor(name: string, version: number) {
-        const self = this;
-        this.name = name;
-        this.version = version;
-        this.rawObjectStores = new AsyncStringMap(
-            `FIDB:AsyncStorage/v0/rawObjectStores/${this.name}`,
+    public static getConstruct(
+        storage: AsyncStorage
+    ): (serialized: string) => Promise<Database> {
+        return function (serialized: string): Promise<Database> {
+            const { name, version } = JSON.parse(serialized);
+            assertTypeof(name, "string");
+            assertTypeof(version, "number");
+
+            return Database.build(storage, name, version);
+        };
+    }
+
+    public static async build(
+        storage: AsyncStorage,
+        name: string,
+        version: number
+    ) {
+        const db: Database = new Database(name, version, null!);
+        db.rawObjectStores = await AsyncStringMap2.construct(
+            storage,
+            `${STORAGE_PREFIX}/${name}/rawObjectStores/`,
             function construct(s) {
                 const { name, keyPath, autoIncrement } = JSON.parse(s);
-                return new ObjectStore(self, name, keyPath, autoIncrement);
+                return new ObjectStore(db, name, keyPath, autoIncrement);
             },
             function save(s) {
                 return JSON.stringify({
@@ -32,7 +59,24 @@ class Database {
                 });
             }
         );
+        return db;
+    }
 
+    public static save(database: Database): string {
+        return JSON.stringify({
+            name: database.name,
+            version: database.version,
+        });
+    }
+
+    constructor(
+        name: string,
+        version: number,
+        public rawObjectStores: AsyncStringMap2<ObjectStore>
+    ) {
+        const self = this;
+        this.name = name;
+        this.version = version;
         this.processTransactions = this.processTransactions.bind(this);
     }
 

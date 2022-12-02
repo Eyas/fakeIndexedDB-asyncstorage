@@ -1,18 +1,20 @@
 import FDBDatabase from "./FDBDatabase.js";
 import FDBOpenDBRequest from "./FDBOpenDBRequest.js";
 import FDBVersionChangeEvent from "./FDBVersionChangeEvent.js";
+import { AsyncStringMap } from "./lib/asyncMap.js";
 import cmp from "./lib/cmp.js";
 import Database from "./lib/Database.js";
 import enforceRange from "./lib/enforceRange.js";
 import { AbortError, VersionError } from "./lib/errors.js";
 import FakeEvent from "./lib/FakeEvent.js";
 import { queueTask } from "./lib/scheduling.js";
+import { AsyncStorage, STORAGE_PREFIX } from "./lib/storage.js";
 
-const waitForOthersClosedDelete = (
-    databases: Map<string, Database>,
+const waitForOthersClosedDelete = async (
+    databases: AsyncStringMap<Database>,
     name: string,
     openDatabases: FDBDatabase[],
-    cb: (err: Error | null) => void,
+    cb: (err: Error | null) => void
 ) => {
     const anyOpen = openDatabases.some((openDatabase2) => {
         return !openDatabase2._closed && !openDatabase2._closePending;
@@ -20,25 +22,25 @@ const waitForOthersClosedDelete = (
 
     if (anyOpen) {
         queueTask(() =>
-            waitForOthersClosedDelete(databases, name, openDatabases, cb),
+            waitForOthersClosedDelete(databases, name, openDatabases, cb)
         );
         return;
     }
 
-    databases.delete(name);
+    await databases.delete(name);
 
     cb(null);
 };
 
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-deleting-a-database
-const deleteDatabase = (
-    databases: Map<string, Database>,
+const deleteDatabase = async (
+    databases: AsyncStringMap<Database>,
     name: string,
     request: FDBOpenDBRequest,
-    cb: (err: Error | null) => void,
+    cb: (err: Error | null) => void
 ) => {
     try {
-        const db = databases.get(name);
+        const db = await databases.get(name);
         if (db === undefined) {
             cb(null);
             return;
@@ -83,7 +85,7 @@ const runVersionchangeTransaction = (
     connection: FDBDatabase,
     version: number,
     request: FDBOpenDBRequest,
-    cb: (err: Error | null) => void,
+    cb: (err: Error | null) => void
 ) => {
     connection._runningVersionchangeTransaction = true;
 
@@ -92,7 +94,7 @@ const runVersionchangeTransaction = (
     const openDatabases = connection._rawDatabase.connections.filter(
         (otherDatabase) => {
             return connection !== otherDatabase;
-        },
+        }
     );
 
     for (const openDatabase2 of openDatabases) {
@@ -135,7 +137,7 @@ const runVersionchangeTransaction = (
         // Get rid of this setImmediate?
         const transaction = connection.transaction(
             connection.objectStoreNames,
-            "versionchange",
+            "versionchange"
         );
         request.result = connection;
         request.readyState = "done";
@@ -182,16 +184,17 @@ const runVersionchangeTransaction = (
 };
 
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-opening-a-database
-const openDatabase = (
-    databases: Map<string, Database>,
+const openDatabase = async (
+    storage: AsyncStorage,
+    databases: AsyncStringMap<Database>,
     name: string,
     version: number | undefined,
     request: FDBOpenDBRequest,
-    cb: (err: Error | null, connection?: FDBDatabase) => void,
+    cb: (err: Error | null, connection?: FDBDatabase) => void
 ) => {
-    let db = databases.get(name);
+    let db = await databases.get(name);
     if (db === undefined) {
-        db = new Database(name, 0);
+        db = await Database.build(storage, name, 0);
         databases.set(name, db);
     }
 
@@ -222,15 +225,24 @@ const openDatabase = (
 
 class FDBFactory {
     public cmp = cmp;
-    private _databases: Map<string, Database> = new Map();
+    private readonly _databases: AsyncStringMap<Database>;
+
+    constructor(private readonly storage: AsyncStorage) {
+        this._databases = new AsyncStringMap(
+            storage,
+            STORAGE_PREFIX + "/databases/",
+            Database.getConstruct(storage),
+            Database.save
+        );
+    }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#widl-IDBFactory-deleteDatabase-IDBOpenDBRequest-DOMString-name
     public deleteDatabase(name: string) {
         const request = new FDBOpenDBRequest();
         request.source = null;
 
-        queueTask(() => {
-            const db = this._databases.get(name);
+        queueTask(async () => {
+            const db = await this._databases.get(name);
             const oldVersion = db !== undefined ? db.version : 0;
 
             deleteDatabase(this._databases, name, request, (err) => {
@@ -280,6 +292,7 @@ class FDBFactory {
 
         queueTask(() => {
             openDatabase(
+                this.storage,
                 this._databases,
                 name,
                 version,
@@ -308,7 +321,7 @@ class FDBFactory {
                     const event2 = new FakeEvent("success");
                     event2.eventPath = [];
                     request.dispatchEvent(event2);
-                },
+                }
             );
         });
 
@@ -316,17 +329,15 @@ class FDBFactory {
     }
 
     // https://w3c.github.io/IndexedDB/#dom-idbfactory-databases
-    public databases() {
-        return new Promise((resolve) => {
-            const result = [];
-            for (const [name, database] of this._databases) {
-                result.push({
-                    name,
-                    version: database.version,
-                });
-            }
-            resolve(result);
-        });
+    public async databases() {
+        const result = [];
+        for (const [name, database] of await this._databases.entries()) {
+            result.push({
+                name,
+                version: database.version,
+            });
+        }
+        return result;
     }
 
     public toString() {

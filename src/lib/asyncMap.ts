@@ -1,41 +1,63 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AsyncStorage } from "./storage";
 
 const LAZY = Symbol("lazy");
 type Lazy = typeof LAZY;
 
+function keysKey(keyPrefix: string): string {
+    return `${keyPrefix}/keys/`;
+}
+function valueKey(keyPrefix: string, key: string): string {
+    return `${keyPrefix}/values/key=${key}/`;
+}
+
+function makeMarshallers<V>(
+    storage: AsyncStorage,
+    keyPrefix: string,
+    _construct: (s: string) => V | Promise<V>,
+    _save: (v: V) => string | Promise<string>
+) {
+    return {
+        async construct(key: string): Promise<V> {
+            const valStr = await storage.getItem(valueKey(keyPrefix, key));
+            if (valStr === null) {
+                throw new Error("unexpected data loss");
+            }
+            return await _construct(valStr);
+        },
+
+        async save(key: string, val: V): Promise<void> {
+            const valStr = _save(val);
+            await storage.setItem(valueKey(keyPrefix, key), await valStr);
+        },
+
+        remove(key: string): Promise<void> {
+            return storage.removeItem(valueKey(keyPrefix, key));
+        },
+    };
+}
+
 export class AsyncStringMap<V> {
     constructor(
+        private readonly storage: AsyncStorage,
         private readonly keyPrefix: string,
-        private readonly _construct: (s: string) => V,
-        private readonly _save: (v: V) => string
-    ) {}
+        _construct: (s: string) => V | Promise<V>,
+        _save: (v: V) => string | Promise<string>
+    ) {
+        const m = makeMarshallers(storage, keyPrefix, _construct, _save);
+        this.construct = m.construct;
+        this.save = m.save;
+    }
 
     private loaded = false;
     private readonly impl = new Map<string, V | Lazy>();
 
-    private keysKey(): string {
-        return `KEYS:${this.keyPrefix}/keys`;
-    }
-    private valueKey(key: string): string {
-        return `VALUES:${this.keyPrefix}/key/${key}`;
-    }
-
-    private async construct(key: string): Promise<V> {
-        const valStr = await AsyncStorage.getItem(this.valueKey(key));
-        if (valStr === null) {
-            throw new Error("unexpected data loss");
-        }
-        return this._construct(valStr);
-    }
-    private async save(key: string, val: V): Promise<void> {
-        const valStr = this._save(val);
-        await AsyncStorage.setItem(this.valueKey(key), valStr);
-    }
+    private construct: (key: string) => Promise<V>;
+    private save: (key: string, val: V) => Promise<void>;
 
     private async loadRecords() {
         if (this.loaded) return;
 
-        const allKeysStr = await AsyncStorage.getItem(this.keysKey());
+        const allKeysStr = await this.storage.getItem(keysKey(this.keyPrefix));
         if (allKeysStr !== null) {
             for (const key of JSON.parse(allKeysStr)) {
                 this.impl.set(key, LAZY);
@@ -46,8 +68,8 @@ export class AsyncStringMap<V> {
     }
 
     private async updateRecords() {
-        await AsyncStorage.setItem(
-            this.keysKey(),
+        await this.storage.setItem(
+            keysKey(this.keyPrefix),
             JSON.stringify(Array.from(this.impl.keys()))
         );
     }
@@ -80,25 +102,104 @@ export class AsyncStringMap<V> {
         }
     }
 
-    async *entries(): AsyncIterable<[string, V]> {
+    async delete(key: string): Promise<void> {
         await this.loadRecords();
-        for await (let [k, v] of this.impl.entries()) {
-            if (v === LAZY) {
-                v = await this.construct(k);
-                this.impl.set(k, v);
-            }
-            return [k, v];
+
+        const shouldUpdateRecords = this.impl.delete(key);
+        if (shouldUpdateRecords) {
+            await this.updateRecords();
         }
     }
 
-    async *keys(): AsyncIterable<string> {
+    async entries(): Promise<readonly [string, V][]> {
         await this.loadRecords();
-        for (const k of this.impl.keys()) yield k;
+        return Promise.all(
+            Array.from(this.impl.entries()).map(async ([k, v]) => {
+                if (v === LAZY) {
+                    v = await this.construct(k);
+                    this.impl.set(k, v);
+                }
+                return [k, v];
+            })
+        );
     }
 
-    async *values(): AsyncIterable<V> {
-        for await (const [, v] of this.entries()) {
-            yield v;
+    async keys(): Promise<readonly string[]> {
+        await this.loadRecords();
+        return Array.from(this.impl.keys());
+    }
+
+    async values(): Promise<readonly V[]> {
+        return (await this.entries()).map(([, v]) => v);
+    }
+}
+
+export class AsyncStringMap2<V> {
+    public static async construct<V>(
+        storage: AsyncStorage,
+        keyPrefix: string,
+        c: (s: string) => V | Promise<V>,
+        s: (v: V) => string | Promise<string>
+    ) {
+        const allKeysStr = await storage.getItem(keysKey(keyPrefix));
+        const allKeys: string[] = allKeysStr ? JSON.parse(allKeysStr) : [];
+
+        const m = makeMarshallers(storage, keyPrefix, c, s);
+
+        const entries = await Promise.all(
+            allKeys.map(
+                async (key) => [key, (await m.construct(key)) as V] as const
+            )
+        );
+        const map = new Map(entries);
+
+        return new AsyncStringMap2(storage, keyPrefix, m, map);
+    }
+
+    private constructor(
+        private readonly storage: AsyncStorage,
+        private readonly keyPrefix: string,
+        private readonly marshaller: ReturnType<typeof makeMarshallers<V>>,
+        private readonly impl: Map<string, V>
+    ) {}
+
+    private async updateRecords() {
+        await this.storage.setItem(
+            keysKey(this.keyPrefix),
+            JSON.stringify(Array.from(this.impl.keys()))
+        );
+    }
+
+    get(key: string): V | undefined {
+        return this.impl.get(key);
+    }
+
+    async set(key: string, value: V): Promise<void> {
+        const shouldUpdateRecords = !this.impl.has(key);
+        this.impl.set(key, value);
+
+        await this.marshaller.save(key, value);
+        if (shouldUpdateRecords) {
+            await this.updateRecords();
         }
+    }
+
+    async delete(key: string): Promise<void> {
+        const shouldUpdateRecords = this.impl.delete(key);
+        if (shouldUpdateRecords) {
+            await this.updateRecords();
+        }
+    }
+
+    entries() {
+        return this.impl.entries();
+    }
+
+    keys() {
+        return this.impl.keys();
+    }
+
+    values() {
+        return this.impl.values();
     }
 }
