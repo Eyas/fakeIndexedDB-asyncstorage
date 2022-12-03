@@ -51,24 +51,31 @@ export class AsyncStringMap<V> {
         this.remove = m.remove;
     }
 
-    private loaded = false;
+    private loaded: Promise<void> | undefined;
     private readonly impl = new Map<string, V | Lazy>();
 
     private construct: (key: string) => Promise<V>;
     private save: (key: string, val: V) => Promise<void>;
     private remove: (key: string) => Promise<void>;
 
-    private async loadRecords() {
-        if (this.loaded) return;
-
-        const allKeysStr = await this.storage.getItem(keysKey(this.keyPrefix));
-        if (allKeysStr !== null) {
-            for (const key of JSON.parse(allKeysStr)) {
-                this.impl.set(key, LAZY);
-            }
+    private loadRecords(): Promise<void> {
+        if (this.loaded) {
+            return this.loaded;
         }
 
-        this.loaded = true;
+        const load = async () => {
+            const allKeysStr = await this.storage.getItem(
+                keysKey(this.keyPrefix)
+            );
+            if (allKeysStr !== null) {
+                for (const key of JSON.parse(allKeysStr)) {
+                    this.impl.set(key, LAZY);
+                }
+            }
+        };
+
+        this.loaded = load();
+        return this.loaded;
     }
 
     private async updateRecords() {
