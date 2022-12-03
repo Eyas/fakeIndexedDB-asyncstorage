@@ -149,7 +149,9 @@ class AsyncTest {
     }
 
     unreached_func(message) {
-        return () => this.fail(new Error(message));
+        return () => {
+            this.fail(new Error(message));
+        };
     }
 
     fail(err) {

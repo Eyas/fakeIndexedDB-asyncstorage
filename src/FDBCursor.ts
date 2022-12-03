@@ -352,7 +352,7 @@ export class FDBCursor {
                         throw new Error("This should never happen");
                     }
                     const value =
-                        this.source.objectStore._rawObjectStore.getValue(
+                        await this.source.objectStore._rawObjectStore.getValue(
                             foundRecord.value
                         );
                     (this as any).value = structuredClone(value);
