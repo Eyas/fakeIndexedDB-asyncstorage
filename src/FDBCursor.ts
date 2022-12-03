@@ -462,10 +462,10 @@ export class FDBCursor {
             this._request.readyState = "pending";
         }
         transaction._execRequestAsync({
-            operation: () => {
+            operation: async () => {
                 let result;
                 for (let i = 0; i < count; i++) {
-                    result = this._iterate();
+                    result = await this._iterate();
 
                     // Not sure why this is needed
                     if (!result) {
