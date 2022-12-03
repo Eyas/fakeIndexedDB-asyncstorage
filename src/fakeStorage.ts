@@ -2,7 +2,7 @@ import { AsyncStorage } from "./lib/storage";
 
 const m = new Map();
 export const storage: AsyncStorage = {
-    getItem: function (key) {
+    getItem(key) {
         return new Promise((resolve, reject) => {
             setImmediate(() => {
                 const v = m.get(key);
@@ -11,7 +11,7 @@ export const storage: AsyncStorage = {
             });
         });
     },
-    setItem: function (key, value) {
+    setItem(key, value) {
         return new Promise((resolve, reject) => {
             setImmediate(() => {
                 m.set(key, value);
@@ -19,7 +19,7 @@ export const storage: AsyncStorage = {
             });
         });
     },
-    removeItem: function (key) {
+    removeItem(key) {
         return new Promise((resolve) => {
             setImmediate(() => {
                 m.delete(key);
