@@ -1,35 +1,8 @@
 import assert from "node:assert";
 import { inject } from "../../../build/esm/inject.js";
+import { storage } from "../../../build/esm/fakeStorage.js";
 import FakeEvent from "../../../build/esm/lib/FakeEvent.js";
 
-const m = new Map();
-const storage = {
-    getItem: function (key) {
-        return new Promise((resolve, reject) => {
-            setImmediate(() => {
-                const v = m.get(key);
-                const vv = v === undefined ? null : v;
-                resolve(vv);
-            });
-        });
-    },
-    setItem: function (key, value) {
-        return new Promise((resolve, reject) => {
-            setImmediate(() => {
-                m.set(key, value);
-                resolve();
-            });
-        });
-    },
-    removeItem: function (key) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                m.delete(key);
-                resolve();
-            }, 2);
-        });
-    },
-};
 inject(storage);
 
 global.Event = FakeEvent;
