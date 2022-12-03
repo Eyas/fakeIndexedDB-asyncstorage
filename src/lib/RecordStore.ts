@@ -17,33 +17,38 @@ function ComputeKey(uniqueId: string) {
 
 class RecordStore {
     private records: Record[] = [];
-    private loaded = false;
+    private loaded: Promise<void> | undefined;
 
     constructor(
         private readonly uniqueId: string,
         private readonly storage: AsyncStorage
     ) {}
 
-    private async ensureLoaded() {
-        if (this.loaded) return;
-
-        const serializedRecords = await this.storage.getItem(
-            ComputeKey(this.uniqueId)
-        );
-        if (serializedRecords === null) return;
-
-        const deserialized = deserialize(serializedRecords);
-
-        if (!deserialized || !(deserialized instanceof Array)) return;
-        for (
-            let chunk = deserialized.splice(0, 10);
-            chunk.length > 0;
-            chunk = deserialized.splice(0, 10)
-        ) {
-            this.records.push(...chunk);
+    private ensureLoaded(): Promise<void> {
+        if (this.loaded) {
+            return this.loaded;
         }
 
-        this.loaded = true;
+        const load = async () => {
+            const serializedRecords = await this.storage.getItem(
+                ComputeKey(this.uniqueId)
+            );
+            if (serializedRecords === null) return;
+
+            const deserialized = deserialize(serializedRecords);
+
+            if (!deserialized || !(deserialized instanceof Array)) return;
+            for (
+                let chunk = deserialized.splice(0, 10);
+                chunk.length > 0;
+                chunk = deserialized.splice(0, 10)
+            ) {
+                this.records.push(...chunk);
+            }
+        };
+
+        this.loaded = load();
+        return this.loaded;
     }
 
     private async reflectUpdate() {
