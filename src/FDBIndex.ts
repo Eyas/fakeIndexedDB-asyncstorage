@@ -257,11 +257,11 @@ class FDBIndex {
         }
 
         return this.objectStore.transaction._execRequestAsync({
-            operation: () => {
+            operation: async () => {
                 let count = 0;
 
                 const cursor = this.objectStore.buildCursor(this, key);
-                while (cursor._iterate() !== null) {
+                while (null !== (await cursor._iterate())) {
                     count += 1;
                 }
 

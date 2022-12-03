@@ -560,11 +560,11 @@ class FDBObjectStore {
         }
 
         return this.transaction._execRequestAsync({
-            operation: () => {
+            operation: async () => {
                 let count = 0;
 
                 const cursor = this.buildCursor(this, key);
-                while (cursor._iterate() !== null) {
+                while (null !== (await cursor._iterate())) {
                     count += 1;
                 }
 
