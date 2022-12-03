@@ -42,6 +42,8 @@ class RecordStore {
         ) {
             this.records.push(...chunk);
         }
+
+        this.loaded = true;
     }
 
     private async reflectUpdate() {
