@@ -22,7 +22,12 @@ import {
 
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#transaction
 class FDBTransaction extends FakeEventTarget {
-    public _state: "active" | "inactive" | "committing" | "finished" = "active";
+    public _state:
+        | "active"
+        | "aborting"
+        | "inactive"
+        | "committing"
+        | "finished" = "active";
     public _started = false;
     public _rollbackLog: RollbackLog = [];
     public _objectStoresCache: Map<string, FDBObjectStore> = new Map();
@@ -98,7 +103,7 @@ class FDBTransaction extends FakeEventTarget {
         if (this._state === "committing" || this._state === "finished") {
             throw new InvalidStateError();
         }
-        this._state = "active";
+        this._state = "aborting";
 
         this._abort(null);
     }
