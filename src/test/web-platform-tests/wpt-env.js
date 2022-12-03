@@ -31,9 +31,7 @@ global.location = {
 global.self = global;
 global.window = global;
 
-const add_completion_callback = (...args) => {
-    console.log("add_completion_callback", ...args);
-};
+const add_completion_callback = (...args) => {};
 
 const assert_array_equals = (...args) => assert.deepEqual(...args);
 
