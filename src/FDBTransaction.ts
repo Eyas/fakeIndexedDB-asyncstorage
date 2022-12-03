@@ -183,7 +183,7 @@ class FDBTransaction extends FakeEventTarget {
                 // operation
                 await operation();
             } else {
-                let defaultAction;
+                let defaultAction: undefined | (() => Promise<void>);
                 let event;
                 try {
                     const result = await operation();
@@ -229,7 +229,7 @@ class FDBTransaction extends FakeEventTarget {
                 // Default action of event
                 if (!event.canceled) {
                     if (defaultAction) {
-                        defaultAction();
+                        await defaultAction();
                     }
                 }
             }

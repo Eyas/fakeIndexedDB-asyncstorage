@@ -251,7 +251,7 @@ class ObjectStore {
         // Update indexes
         for await (const rawIndex of this.rawIndexes.values()) {
             if (rawIndex.initialized) {
-                rawIndex.storeRecord(newRecord);
+                await rawIndex.storeRecord(newRecord);
             }
         }
 
@@ -264,8 +264,8 @@ class ObjectStore {
 
         if (rollbackLog) {
             for (const record of deletedRecords) {
-                rollbackLog.push(() => {
-                    this.storeRecord(record, true);
+                rollbackLog.push(async () => {
+                    await this.storeRecord(record, true);
                 });
             }
         }
@@ -281,8 +281,8 @@ class ObjectStore {
 
         if (rollbackLog) {
             for (const record of deletedRecords) {
-                rollbackLog.push(() => {
-                    this.storeRecord(record, true);
+                rollbackLog.push(async () => {
+                    await this.storeRecord(record, true);
                 });
             }
         }

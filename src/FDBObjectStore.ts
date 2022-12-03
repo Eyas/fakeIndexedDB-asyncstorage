@@ -455,7 +455,7 @@ class FDBObjectStore {
             }
 
             this.indexNames = new FakeDOMStringList(...indexNames);
-            this._rawObjectStore.rawIndexes.delete(name);
+            return this._rawObjectStore.rawIndexes.delete(name);
         });
 
         const index = new Index(
@@ -519,9 +519,9 @@ class FDBObjectStore {
             throw new NotFoundError();
         }
 
-        this.transaction._rollbackLog.push(() => {
+        this.transaction._rollbackLog.push(async () => {
             rawIndex.deleted = false;
-            this._rawObjectStore.rawIndexes.set(name, rawIndex);
+            await this._rawObjectStore.rawIndexes.set(name, rawIndex);
             this.indexNames._push(name);
             this.indexNames._sort();
         });

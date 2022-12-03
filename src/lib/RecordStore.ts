@@ -151,7 +151,10 @@ class RecordStore {
         return deletedRecords;
     }
 
-    public values(range?: FDBKeyRange, direction: "next" | "prev" = "next") {
+    public values(
+        range?: FDBKeyRange,
+        direction: "next" | "prev" = "next"
+    ): AsyncIterable<Record> {
         return {
             [Symbol.asyncIterator]: () => {
                 const init = async () => {
@@ -206,8 +209,8 @@ class RecordStore {
                             isInit = true;
                         }
 
-                        let done;
-                        let value;
+                        let done: boolean;
+                        let value: Record | undefined;
                         if (direction === "next") {
                             value = this.records[i];
                             done = i >= this.records.length;
@@ -246,14 +249,10 @@ class RecordStore {
                             }
                         }
 
-                        // The weird "as IteratorResult<Record>" is needed because of
-                        // https://github.com/Microsoft/TypeScript/issues/11375 and
-                        // https://github.com/Microsoft/TypeScript/issues/2983
-                        // tslint:disable-next-line no-object-literal-type-assertion
                         return {
                             done,
-                            value,
-                        } as IteratorResult<Record>;
+                            value: value!,
+                        };
                     },
                 };
             },
