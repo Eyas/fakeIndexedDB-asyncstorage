@@ -11,13 +11,26 @@ import cmp from "./cmp.js";
 import { AsyncStorage, STORAGE_PREFIX } from "./storage.js";
 import { Key, Record } from "./types.js";
 
-function ComputeKey(uniqueId: string) {
-    return `${STORAGE_PREFIX}/recordStore/${uniqueId}`;
+function ComputeKey(uniqueId: string, refId?: number) {
+    if (refId === undefined) {
+        return `${STORAGE_PREFIX}/recordStore/${uniqueId}`;
+    }
+    return `${STORAGE_PREFIX}/recordStore/${uniqueId}/ref/${refId}`;
+}
+
+/*
+   value://uniqueId/ref/refId -> Value
+   store://uniqueId --> refId[];
+*/
+
+interface RecordWithRef extends Record {
+    r: number;
 }
 
 class RecordStore {
-    private records: Record[] = [];
+    private records: RecordWithRef[] = [];
     private loaded: Promise<void> | undefined;
+    private nextRefId = 0;
 
     constructor(
         private readonly uniqueId: string,
@@ -31,19 +44,38 @@ class RecordStore {
 
         const load = async () => {
             const serializedRecords = await this.storage.getItem(
-                ComputeKey(this.uniqueId)
+                "store://" + ComputeKey(this.uniqueId)
             );
             if (serializedRecords === null) return;
 
-            const deserialized = deserialize(serializedRecords);
-
+            const deserialized = JSON.parse(serializedRecords);
             if (!deserialized || !(deserialized instanceof Array)) return;
+
+            const recordIds: number[] = [];
             for (
                 let chunk = deserialized.splice(0, 10);
                 chunk.length > 0;
                 chunk = deserialized.splice(0, 10)
             ) {
-                this.records.push(...chunk);
+                recordIds.push(...chunk);
+            }
+
+            this.records = (
+                await Promise.all(
+                    recordIds
+                        .map(
+                            (recordId) =>
+                                "value://" + ComputeKey(this.uniqueId, recordId)
+                        )
+                        .map(this.storage.getItem)
+                )
+            ).map((recordStr) => {
+                if (recordStr === null) throw new Error("Data Loss!!!");
+                return deserialize(recordStr) as RecordWithRef;
+            });
+            this.nextRefId = 1 + +recordIds.reduce((a, b) => Math.max(a, b));
+            if (isNaN(this.nextRefId)) {
+                throw new Error("Unexpected NaN");
             }
         };
 
@@ -51,9 +83,26 @@ class RecordStore {
         return this.loaded;
     }
 
-    private async reflectUpdate() {
-        const serialized = serialize(this.records);
-        await this.storage.setItem(ComputeKey(this.uniqueId), serialized);
+    private async saveSort() {
+        const serialized = JSON.stringify(this.records.map((r) => r.r));
+        await this.storage.setItem(
+            "store://" + ComputeKey(this.uniqueId),
+            serialized
+        );
+    }
+
+    private async changeRecord(r: RecordWithRef) {
+        const serialized = serialize(r);
+        await this.storage.setItem(
+            "value://" + ComputeKey(this.uniqueId, r.r),
+            serialized
+        );
+    }
+
+    private async deleteRecord(r: RecordWithRef) {
+        await this.storage.removeItem(
+            "value://" + ComputeKey(this.uniqueId, r.r)
+        );
     }
 
     public async get(key: Key | FDBKeyRange) {
@@ -66,8 +115,13 @@ class RecordStore {
         return getByKey(this.records, key);
     }
 
-    public async add(newRecord: Record) {
+    public async add(r: Record) {
         await this.ensureLoaded();
+
+        const newRecord: RecordWithRef = {
+            ...r,
+            r: this.nextRefId++,
+        };
 
         // Find where to put it so it's sorted by key
         let i;
@@ -96,13 +150,14 @@ class RecordStore {
         }
 
         this.records.splice(i, 0, newRecord);
-        await this.reflectUpdate();
+        await this.saveSort();
+        await this.changeRecord(newRecord);
     }
 
-    public async delete(key: Key) {
+    public async delete(key: Key): Promise<readonly Record[]> {
         await this.ensureLoaded();
 
-        const deletedRecords: Record[] = [];
+        const deletedRecords: RecordWithRef[] = [];
 
         const isRange = key instanceof FDBKeyRange;
         while (true) {
@@ -116,17 +171,18 @@ class RecordStore {
             this.records.splice(idx, 1);
         }
         if (deletedRecords.length > 0) {
-            await this.reflectUpdate();
+            await Promise.all(deletedRecords.map((r) => this.deleteRecord(r)));
+            await this.saveSort();
         }
         return deletedRecords;
     }
 
-    public async deleteByValue(key: Key) {
+    public async deleteByValue(key: Key): Promise<readonly Record[]> {
         await this.ensureLoaded();
 
         const range = key instanceof FDBKeyRange ? key : FDBKeyRange.only(key);
 
-        const deletedRecords: Record[] = [];
+        const deletedRecords: RecordWithRef[] = [];
 
         this.records = this.records.filter((record) => {
             const shouldDelete = range.includes(record.value);
@@ -139,7 +195,8 @@ class RecordStore {
         });
 
         if (deletedRecords.length > 0) {
-            await this.reflectUpdate();
+            await Promise.all(deletedRecords.map((r) => this.deleteRecord(r)));
+            await this.saveSort();
         }
 
         return deletedRecords;
@@ -152,7 +209,8 @@ class RecordStore {
         this.records = [];
 
         if (deletedRecords.length > 0) {
-            await this.reflectUpdate();
+            await Promise.all(deletedRecords.map((r) => this.deleteRecord(r)));
+            await this.saveSort();
         }
 
         return deletedRecords;
