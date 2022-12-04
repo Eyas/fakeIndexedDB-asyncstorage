@@ -481,7 +481,8 @@ class FDBObjectStore {
 
         if (
             this._rawObjectStore.deleted ||
-            this.transaction._state === "finished"
+            this.transaction._state === "finished" ||
+            this.transaction._state === "aborting"
         ) {
             throw new InvalidStateError();
         }
