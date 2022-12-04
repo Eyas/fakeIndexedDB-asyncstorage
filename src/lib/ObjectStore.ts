@@ -8,7 +8,6 @@ import Index from "./Index.js";
 import KeyGenerator from "./KeyGenerator.js";
 import RecordStore from "./RecordStore.js";
 import { AsyncStorage, STORAGE_PREFIX } from "./storage.js";
-import structuredClone from "./structuredClone.js";
 import { Key, KeyPath, Record, RollbackLog } from "./types.js";
 
 function RawIndexesBuilder(

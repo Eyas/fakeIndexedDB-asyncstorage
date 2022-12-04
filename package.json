@@ -51,7 +51,6 @@
         "types.d.ts"
     ],
     "dependencies": {
-        "realistic-structured-clone": "^3.0.0",
         "serialize-anything": "^1.2.3"
     },
     "devDependencies": {

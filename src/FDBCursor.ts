@@ -10,7 +10,6 @@ import {
     TransactionInactiveError,
 } from "./lib/errors.js";
 import extractKey from "./lib/extractKey.js";
-import structuredClone from "./lib/structuredClone.js";
 import {
     CursorRange,
     CursorSource,

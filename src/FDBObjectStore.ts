@@ -19,7 +19,6 @@ import extractKey from "./lib/extractKey.js";
 import FakeDOMStringList from "./lib/FakeDOMStringList.js";
 import Index from "./lib/Index.js";
 import ObjectStore from "./lib/ObjectStore.js";
-import structuredClone from "./lib/structuredClone.js";
 import { FDBCursorDirection, Key, KeyPath, Value } from "./lib/types.js";
 import validateKeyPath from "./lib/validateKeyPath.js";
 import valueToKey from "./lib/valueToKey.js";
