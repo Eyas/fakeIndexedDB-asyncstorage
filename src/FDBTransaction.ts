@@ -105,7 +105,13 @@ class FDBTransaction extends FakeEventTarget {
         }
         this._state = "aborting";
 
-        this._abort(null);
+        // Kick off abort ASAP before any other action.
+        this._requests = [
+            {
+                operation: this._abort.bind(this, null),
+                request: new FDBRequest(),
+            },
+        ];
     }
 
     // http://w3c.github.io/IndexedDB/#dom-idbtransaction-objectstore
