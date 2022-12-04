@@ -16,15 +16,9 @@ const waitForOthersClosedDelete = async (
     openDatabases: FDBDatabase[],
     cb: (err: Error | null) => void
 ) => {
-    const anyOpen = openDatabases.some((openDatabase2) => {
-        return !openDatabase2._closed && !openDatabase2._closePending;
-    });
-
-    if (anyOpen) {
-        queueTask(() =>
-            waitForOthersClosedDelete(databases, name, openDatabases, cb)
-        );
-        return;
+    // While any db is open
+    while (openDatabases.some((db) => !db._closed && !db._closePending)) {
+        await new Promise((resolve) => setImmediate(resolve));
     }
 
     // cleanup db if we can find it...
@@ -51,6 +45,7 @@ const deleteDatabase = async (
     request: FDBOpenDBRequest,
     cb: (err: Error | null) => void
 ) => {
+    let openDatabases: FDBDatabase[];
     try {
         const db = await databases.get(name);
         if (db === undefined) {
@@ -60,7 +55,7 @@ const deleteDatabase = async (
 
         db.deletePending = true;
 
-        const openDatabases = db.connections.filter((connection) => {
+        openDatabases = db.connections.filter((connection) => {
             return !connection._closed && !connection._closePending;
         });
 
@@ -85,11 +80,12 @@ const deleteDatabase = async (
             });
             request.dispatchEvent(event);
         }
-
-        waitForOthersClosedDelete(databases, name, openDatabases, cb);
     } catch (err) {
         cb(err);
+        return;
     }
+
+    await waitForOthersClosedDelete(databases, name, openDatabases, cb);
 };
 
 // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-running-a-versionchange-transaction
@@ -245,6 +241,9 @@ class FDBFactory {
     public cmp = cmp;
     private readonly _databases: AsyncStringMap<Database>;
 
+    private deleteQueue: (() => Promise<void>)[] = [];
+    private deleteQueueProcessing = false;
+
     constructor(private readonly storage: AsyncStorage) {
         this._databases = new AsyncStringMap(
             storage,
@@ -259,11 +258,11 @@ class FDBFactory {
         const request = new FDBOpenDBRequest();
         request.source = null;
 
-        queueTask(async () => {
+        const deleteAction = async () => {
             const db = await this._databases.get(name);
             const oldVersion = db !== undefined ? db.version : 0;
 
-            deleteDatabase(this._databases, name, request, (err) => {
+            await deleteDatabase(this._databases, name, request, (err) => {
                 if (err) {
                     request.error = new Error();
                     request.error.name = err.name;
@@ -288,7 +287,19 @@ class FDBFactory {
                 });
                 request.dispatchEvent(event2);
             });
-        });
+        };
+
+        this.deleteQueue.push(deleteAction);
+        if (!this.deleteQueueProcessing) {
+            const f = async () => {
+                this.deleteQueueProcessing = true;
+                while (this.deleteQueue.length > 0) {
+                    await this.deleteQueue.shift()!();
+                }
+                this.deleteQueueProcessing = false;
+            };
+            f();
+        }
 
         return request;
     }
