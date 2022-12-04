@@ -170,13 +170,13 @@ class Index {
                 try {
                     // Create index based on current value of objectstore
                     for await (const record of this.rawObjectStore.records.values()) {
-                        this.storeRecord(record);
+                        await this.storeRecord(record);
                     }
 
                     this.initialized = true;
                 } catch (err) {
                     // console.error(err);
-                    transaction._abort(err.name);
+                    await transaction._abort(err.name);
                 }
             },
             source: null,
