@@ -245,7 +245,7 @@ class FDBTransaction extends FakeEventTarget {
         }
 
         // Check if transaction complete event needs to be fired
-        if (this._state !== "finished") {
+        if (this._state !== "finished" && this._state !== "aborting") {
             // Either aborted or committed already
             this._state = "finished";
 

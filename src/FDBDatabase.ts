@@ -25,7 +25,11 @@ const confirmActiveVersionchangeTransaction = (database: FDBDatabase) => {
     });
     const transaction = transactions[transactions.length - 1];
 
-    if (!transaction || transaction._state === "finished") {
+    if (
+        !transaction ||
+        transaction._state === "finished" ||
+        transaction._state === "aborting"
+    ) {
         throw new InvalidStateError();
     }
 
