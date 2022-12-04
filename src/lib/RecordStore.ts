@@ -73,9 +73,15 @@ class RecordStore {
                 if (recordStr === null) throw new Error("Data Loss!!!");
                 return deserialize(recordStr) as RecordWithRef;
             });
-            this.nextRefId = 1 + +recordIds.reduce((a, b) => Math.max(a, b));
-            if (isNaN(this.nextRefId)) {
-                throw new Error("Unexpected NaN");
+
+            if (recordIds.length === 0) {
+                this.nextRefId = 0;
+            } else {
+                this.nextRefId =
+                    1 + +recordIds.reduce((a, b) => Math.max(a, b));
+                if (isNaN(this.nextRefId)) {
+                    throw new Error("Unexpected NaN");
+                }
             }
         };
 
@@ -172,7 +178,9 @@ class RecordStore {
         }
         if (deletedRecords.length > 0) {
             await Promise.all(deletedRecords.map((r) => this.deleteRecord(r)));
-            await this.saveSort();
+            await this.storage.removeItem(
+                "store://" + ComputeKey(this.uniqueId)
+            );
         }
         return deletedRecords;
     }
