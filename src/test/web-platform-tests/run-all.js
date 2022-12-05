@@ -28,10 +28,6 @@ const skip = [
     "idb-binary-key-detached.js",
     "idb_webworkers.js",
 
-    // Mostly works, but Node.js doesn't support trailing commas in function parameters, and there's some other subtle
-    // issues too.
-    "idb-binary-key-roundtrip.js",
-
     // Mostly works, but keepAlive results in an infinite loop
     "idb-explicit-commit.any.js",
 
