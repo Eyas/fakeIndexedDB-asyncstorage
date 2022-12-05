@@ -42,17 +42,7 @@ const assert_unreached = (msg) => assert.fail(msg);
 const assert_equals = (...args) => assert.equal(...args);
 
 const assert_class_string = (object, class_string, description) => {
-    // Would be better to to use `{}.toString.call(object)` instead of `object.toString()`, but I can't make that work
-    // with my custom Objects except in some very modern environments http://stackoverflow.com/a/34098492/786644 so fuck
-    // it, probably nobody will notice.
-    if (class_string === "Array") {
-        return Array.isArray(object);
-    }
-    assert_equals(
-        object.toString(),
-        "[object " + class_string + "]",
-        description
-    );
+    assert_equals(object[Symbol.toStringTag], class_string);
 };
 
 const assert_false = (val, message) => assert.ok(!val, message);
