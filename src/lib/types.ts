@@ -42,6 +42,9 @@ export interface RequestObj<T = unknown> {
     source?: any;
 }
 
-export type RollbackLog = (() => Promise<void>|void)[];
+export type RollbackLog = {
+    immediate: (() => void)[];
+    transactional: (() => Promise<void> | void)[];
+};
 
 export type TransactionMode = "readonly" | "readwrite" | "versionchange";

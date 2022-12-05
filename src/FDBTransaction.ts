@@ -29,7 +29,10 @@ class FDBTransaction extends FakeEventTarget {
         | "committing"
         | "finished" = "active";
     public _started = false;
-    public _rollbackLog: RollbackLog = [];
+    public _rollbackLog: RollbackLog = {
+        immediate: [],
+        transactional: [],
+    };
     public _objectStoresCache: Map<string, FDBObjectStore> = new Map();
 
     public objectStoreNames: FakeDOMStringList;
@@ -57,9 +60,15 @@ class FDBTransaction extends FakeEventTarget {
         );
     }
 
+    public _runImmediateRollback() {
+        for (const f of this._rollbackLog.immediate.reverse()) {
+            f();
+        }
+    }
+
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-aborting-a-transaction
     public async _abort(errName: string | null) {
-        for (const f of this._rollbackLog.reverse()) {
+        for (const f of this._rollbackLog.transactional.reverse()) {
             await f();
         }
 
@@ -103,6 +112,7 @@ class FDBTransaction extends FakeEventTarget {
         if (this._state === "committing" || this._state === "finished") {
             throw new InvalidStateError();
         }
+        this._runImmediateRollback();
         this._state = "aborting";
 
         // Kick off abort ASAP before any other action.
@@ -222,7 +232,10 @@ class FDBTransaction extends FakeEventTarget {
                         cancelable: true,
                     });
 
-                    defaultAction = this._abort.bind(this, err.name);
+                    defaultAction = () => {
+                        this._runImmediateRollback();
+                        return this._abort(err.name);
+                    };
                 }
 
                 try {
@@ -230,6 +243,7 @@ class FDBTransaction extends FakeEventTarget {
                     request.dispatchEvent(event);
                 } catch (err) {
                     if (this._state !== "committing") {
+                        this._runImmediateRollback();
                         await this._abort("AbortError");
                     }
                     throw err;

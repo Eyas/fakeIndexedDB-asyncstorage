@@ -119,7 +119,7 @@ class FDBDatabase extends FakeEventTarget {
         }
 
         const objectStoreNames = [...this.objectStoreNames];
-        transaction._rollbackLog.push(async () => {
+        transaction._rollbackLog.transactional.push(async () => {
             const objectStore = this._rawDatabase.rawObjectStores.get(name);
             if (objectStore) {
                 objectStore.deleted = true;
@@ -166,7 +166,7 @@ class FDBDatabase extends FakeEventTarget {
             ...this.objectStoreNames
         );
 
-        transaction._rollbackLog.push(() => {
+        transaction._rollbackLog.transactional.push(() => {
             store.deleted = false;
             this._rawDatabase.rawObjectStores.set(name, store);
             this.objectStoreNames._push(name);

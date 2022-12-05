@@ -180,7 +180,7 @@ class ObjectStore {
         if (this.keyGenerator !== null && newRecord.key === undefined) {
             if (rollbackLog) {
                 const keyGeneratorBefore = this.keyGenerator.num;
-                rollbackLog.push(() => {
+                rollbackLog.transactional.push(() => {
                     if (this.keyGenerator) {
                         this.keyGenerator.num = keyGeneratorBefore;
                     }
@@ -242,7 +242,7 @@ class ObjectStore {
         this.records.add(newRecord);
 
         if (rollbackLog) {
-            rollbackLog.push(async () => {
+            rollbackLog.transactional.push(async () => {
                 await this.deleteRecord(newRecord.key);
             });
         }
@@ -263,7 +263,7 @@ class ObjectStore {
 
         if (rollbackLog) {
             for (const record of deletedRecords) {
-                rollbackLog.push(async () => {
+                rollbackLog.transactional.push(async () => {
                     await this.storeRecord(record, true);
                 });
             }
@@ -280,7 +280,7 @@ class ObjectStore {
 
         if (rollbackLog) {
             for (const record of deletedRecords) {
-                rollbackLog.push(async () => {
+                rollbackLog.transactional.push(async () => {
                     await this.storeRecord(record, true);
                 });
             }

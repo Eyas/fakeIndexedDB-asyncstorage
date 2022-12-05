@@ -47,16 +47,6 @@ const skip = [
     "idbfactory-deleteDatabase-opaque-origin.js",
     "idbfactory-open-opaque-origin.js",
 
-    // Fails because FDBTransaction._abort synchronously sends out error events to open requests, when it should be
-    // asynchronous according to the spec. Making it asynchronous causes other tests to fail though. Need to be more
-    // careful about making sure other asynchronous things are actually asynchronous, and also "asynchronous" doesn't
-    // just mean "wrap in setImmediate", in this context it means to wait until prior requests are complete and then
-    // execute.
-    "idbindex_get8.js",
-    "idbindex_getKey8.js",
-    "idbindex_openCursor3.js",
-    "idbindex_openKeyCursor4.js",
-
     // Mostly works, but subtlely wrong behavior when renaming a newly-created index/store and then aborting the upgrade
     // transaction (this has roughly 0 real world impact, but could be indicative of other problems in fake-indexeddb).
     "idbindex-rename-abort.js",

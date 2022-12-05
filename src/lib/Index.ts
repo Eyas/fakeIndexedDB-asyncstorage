@@ -175,7 +175,7 @@ class Index {
 
                     this.initialized = true;
                 } catch (err) {
-                    // console.error(err);
+                    transaction._runImmediateRollback();
                     await transaction._abort(err.name);
                 }
             },

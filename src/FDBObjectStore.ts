@@ -174,7 +174,7 @@ class FDBObjectStore {
             ...Array.from(transaction._scope).sort()
         );
 
-        transaction._rollbackLog.push(async () => {
+        transaction._rollbackLog.transactional.push(async () => {
             this._name = oldName;
             this._rawObjectStore.name = oldName;
             this.transaction._objectStoresCache.delete(name);
@@ -447,13 +447,15 @@ class FDBObjectStore {
         // "versionchange" transaction which was used for the createIndex call.
 
         const indexNames = [...this.indexNames];
-        this.transaction._rollbackLog.push(() => {
+        this.transaction._rollbackLog.immediate.push(() => {
             const index2 = this._rawObjectStore.rawIndexes.get(name);
             if (index2) {
                 index2.deleted = true;
             }
 
             this.indexNames = new FakeDOMStringList(...indexNames);
+        });
+        this.transaction._rollbackLog.transactional.push(() => {
             return this._rawObjectStore.rawIndexes.delete(name);
         });
 
@@ -519,8 +521,10 @@ class FDBObjectStore {
             throw new NotFoundError();
         }
 
-        this.transaction._rollbackLog.push(async () => {
+        this.transaction._rollbackLog.immediate.push(() => {
             rawIndex.deleted = false;
+        });
+        this.transaction._rollbackLog.transactional.push(async () => {
             await this._rawObjectStore.rawIndexes.set(name, rawIndex);
             this.indexNames._push(name);
             this.indexNames._sort();

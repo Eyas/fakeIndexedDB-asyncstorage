@@ -151,7 +151,7 @@ const runVersionchangeTransaction = (
         request.readyState = "done";
         request.transaction = transaction;
 
-        transaction._rollbackLog.push(() => {
+        transaction._rollbackLog.transactional.push(() => {
             connection._rawDatabase.version = oldVersion;
             connection.version = oldVersion;
         });
