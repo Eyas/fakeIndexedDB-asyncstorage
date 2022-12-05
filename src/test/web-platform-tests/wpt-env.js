@@ -36,7 +36,7 @@ const assert_unreached = (msg) => assert.fail(msg);
 const assert_equals = (...args) => assert.equal(...args);
 
 const assert_class_string = (object, class_string, description) => {
-    assert_equals(object[Symbol.toStringTag], class_string);
+    assert_equals({}.toString.call(object), `[object ${class_string}]`);
 };
 
 const assert_false = (val, message) => assert.ok(!val, message);

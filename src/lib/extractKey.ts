@@ -42,7 +42,10 @@ const extractKey = (keyPath: KeyPath, value: Value) => {
             remainingKeyPath = null;
         }
 
-        if (
+        const special = determineSpecialIdentifier(object, identifier);
+        if (special !== undefined) {
+            identifier = special;
+        } else if (
             object === undefined ||
             object === null ||
             !object.hasOwnProperty(identifier)
@@ -55,5 +58,23 @@ const extractKey = (keyPath: KeyPath, value: Value) => {
 
     return object;
 };
+
+// https://w3c.github.io/IndexedDB/#evaluate-a-key-path-on-a-value
+function determineSpecialIdentifier(object: unknown, identifier: string) {
+    if (typeof object === "string" || Array.isArray(object)) {
+        if (identifier === "length") return "length";
+        return undefined;
+    }
+
+    if (object instanceof Blob) {
+        if (identifier === "size") return "size";
+        if (identifier === "type") return "type";
+        return undefined;
+    }
+
+    // instanceof File
+    // "name", "lastModified"
+    return undefined;
+}
 
 export default extractKey;
