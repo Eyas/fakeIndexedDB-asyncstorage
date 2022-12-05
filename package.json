@@ -44,10 +44,9 @@
     "author": "Jeremy Scheff <jdscheff@gmail.com> (http://dumbmatter.com/)",
     "license": "Apache-2.0",
     "files": [
-        "auto",
-        "auto.d.ts",
-        "build",
-        "lib",
+        "build/esm/lib",
+        "build/esm/serial",
+        "build/esm/*.js",
         "types.d.ts"
     ],
     "dependencies": {},
