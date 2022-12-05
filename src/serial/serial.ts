@@ -60,7 +60,7 @@ type SerialReference = { r: number } | { u: null };
 type SerialValue = SerialPrimitive | SerialDate | SerialRegex | SerialReference;
 type SerialObject = { o: [string | number, SerialValue][] };
 type SerialArray = { a: SerialValue[] };
-type SerialMap = { m: Array<[string | number | boolean | null, SerialValue]> };
+type SerialMap = { m: [string | number | boolean | null, SerialValue][] };
 type SerialAnyRef =
     | SerialObject
     | SerialArray
@@ -123,7 +123,7 @@ const specificErrorConstructors = {
     URIError,
 };
 
-function ref(
+function getOrMintRef(
     value: RealReference,
     wm: WeakMap<object, number>,
     explore: RealReference[],
@@ -163,7 +163,7 @@ export function serialize(o: RealObject): SerializedResult {
             value instanceof Object
         ) {
             let idx: number;
-            [idx, nextIndex] = ref(value, wm, explore, nextIndex);
+            [idx, nextIndex] = getOrMintRef(value, wm, explore, nextIndex);
             return { r: idx };
         }
         if (value === undefined) {
@@ -174,6 +174,7 @@ export function serialize(o: RealObject): SerializedResult {
     }
 
     let cur: RealReference | undefined;
+    /* tslint:disable-next-line no-conditional-assignment */
     while ((cur = explore.pop())) {
         let obj: SerialAnyRef;
         if (Array.isArray(cur)) {
@@ -198,7 +199,7 @@ export function serialize(o: RealObject): SerializedResult {
             obj = { B: base64 };
         } else if (ArrayBuffer.isView(cur)) {
             let idx: number;
-            [idx, nextIndex] = ref(cur.buffer, wm, explore, nextIndex);
+            [idx, nextIndex] = getOrMintRef(cur.buffer, wm, explore, nextIndex);
 
             const type = cur.constructor.name as keyof typeof dataViews;
             const typeName = dataViews[type].name;
@@ -222,8 +223,7 @@ export function serialize(o: RealObject): SerializedResult {
             );
         }
 
-        const idx = wm.get(cur)!;
-        result.set(idx, obj);
+        result.set(wm.get(cur)!, obj);
     }
     return Array.from(result.entries());
 }

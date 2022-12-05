@@ -17,7 +17,7 @@ const waitForOthersClosedDelete = async (
     cb: (err: Error | null) => void
 ) => {
     // While any db is open
-    while (openDatabases.some((db) => !db._closed && !db._closePending)) {
+    while (openDatabases.some((d) => !d._closed && !d._closePending)) {
         await new Promise((resolve) => setImmediate(resolve));
     }
 
