@@ -145,8 +145,10 @@ describe("getAll", () => {
 });
 
 describe("getAllKeys", () => {
+    let fakeIndexedDB: FDBFactory;
     beforeEach((done) => {
-        const request = fake().open("test" + Math.random());
+        fakeIndexedDB = fake();
+        const request = fakeIndexedDB.open("test" + Math.random());
         request.onupgradeneeded = (e) => {
             const db2 = e.target.result;
             const store = db2.createObjectStore("store", { keyPath: "key" });
@@ -245,7 +247,7 @@ describe("getAllKeys", () => {
     it("throws InvalidStateError when store has been deleted", (done) => {
         db.close();
         let store: FDBObjectStore;
-        const request = fake().open(db.name, 2);
+        const request = fakeIndexedDB.open(db.name, 2);
         request.onupgradeneeded = (e) => {
             const db2 = e.target.result;
             const tx = e.target.transaction;
