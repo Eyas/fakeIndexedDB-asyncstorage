@@ -32,6 +32,7 @@ type RealPrimitive =
     | ArrayBuffer
     | SharedArrayBuffer
     | ErrorType
+    | Blob
     // | WebTypes
     | null
     | undefined;
@@ -56,6 +57,9 @@ type SerialError = {
         string | null
     ];
 };
+type SerialBlob = {
+    BL: [SerialBuffer, string];
+};
 type SerialReference = { r: number } | { u: null };
 type SerialValue = SerialPrimitive | SerialDate | SerialRegex | SerialReference;
 type SerialObject = { o: [string | number, SerialValue][] };
@@ -67,7 +71,8 @@ type SerialAnyRef =
     | SerialMap
     | SerialBuffer
     | SerialBufferView
-    | SerialError;
+    | SerialError
+    | SerialBlob;
 type SerialList = Map<number, SerialAnyRef>;
 export type SerializedResult = [number, SerialAnyRef][];
 
@@ -78,7 +83,8 @@ type RealReference =
     | TypedArray
     | DataView
     | ArrayBufferView
-    | ErrorType;
+    | ErrorType
+    | Blob;
 
 function buildDvSD<
     T,
@@ -138,7 +144,7 @@ function getOrMintRef(
     return [nextIndex, nextIndex];
 }
 
-export function serialize(o: RealObject): SerializedResult {
+export async function serialize(o: RealObject): Promise<SerializedResult> {
     const result: SerialList = new Map();
     const wm = new WeakMap<object, number>();
     wm.set(o, 0);
@@ -160,6 +166,7 @@ export function serialize(o: RealObject): SerializedResult {
             value instanceof SharedArrayBuffer ||
             ArrayBuffer.isView(value) ||
             value instanceof Error ||
+            value instanceof Blob ||
             value instanceof Object
         ) {
             let idx: number;
@@ -212,6 +219,13 @@ export function serialize(o: RealObject): SerializedResult {
                 cur.name in specificErrorConstructors ? cur.name : "Error"
             ) as "Error" | keyof typeof specificErrorConstructors;
             obj = { E: [name, cur.message, cur.stack || null] };
+        } else if (cur instanceof Blob) {
+            const base64 = btoa(
+                Array.from(new Uint8Array(await cur.arrayBuffer()))
+                    .map((n) => String.fromCharCode(n))
+                    .join("")
+            );
+            obj = { BL: [{ B: base64 }, cur.type] };
         } else if (cur instanceof Object) {
             obj = {
                 o: Object.entries(cur).map(([k, v]) => [k, serializeValue(v)]),
@@ -271,6 +285,12 @@ export function deserialize(_j: SerializedResult): RealReference {
             results.set(idx, typed.buffer);
         } else if ("BV" in obj) {
             bvs.push([idx, obj]);
+        } else if ("BL" in obj) {
+            const base64 = atob(obj.BL[0].B)
+                .split("")
+                .map((str) => str.charCodeAt(0));
+            const typed = Uint8Array.from(base64);
+            results.set(idx, new Blob([typed.buffer], { type: obj.BL[1] }));
         } else if ("E" in obj) {
             const [type, message, stack] = obj.E;
             const e = new (
@@ -323,6 +343,8 @@ export function deserialize(_j: SerializedResult): RealReference {
                 );
             if (deserialized instanceof Error)
                 throw new Error("Deserialized shouldn't be an Error instance.");
+            if (deserialized instanceof Blob)
+                throw new Error("Deserialized shouldn't be a blob.");
             if (!(deserialized instanceof Object))
                 throw new Error("Deserialized shouldn't be a primitive.");
 
@@ -343,7 +365,7 @@ export function deserialize(_j: SerializedResult): RealReference {
             for (const [k, v] of obj.m) {
                 deserialized.set(k, deserializeValue(v));
             }
-        } else if ("B" in obj || "E" in obj || "BV" in obj) {
+        } else if ("B" in obj || "E" in obj || "BV" in obj || "BL" in obj) {
             // Array Buffers and Array Buffer Views are fine as-is
             continue;
         } else {

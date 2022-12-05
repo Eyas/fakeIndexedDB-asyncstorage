@@ -7,12 +7,6 @@ inject(storage);
 
 global.Event = FakeEvent;
 
-global.Blob = function (parts, options = {}) {
-    this.size = 0;
-    Object.assign(this, options);
-    return this;
-};
-
 global.File = function (bits, name, options = {}) {
     this.name = name;
     Object.assign(this, options);

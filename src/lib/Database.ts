@@ -66,13 +66,13 @@ class Database {
                     autoIncrement
                 );
             },
-            save(s) {
+            async save(s) {
                 const diskFormat: DiskFormat = {
                     objectStoreName: s.name,
                     keyPath: s.keyPath,
                     autoIncrement: s.autoIncrement,
                 };
-                return JSON.stringify(serialize(diskFormat));
+                return JSON.stringify(await serialize(diskFormat));
             },
         });
         return db;

@@ -36,14 +36,14 @@ function RawIndexesBuilder(
                 unique
             );
         },
-        save(idx: Index): string {
+        async save(idx: Index): Promise<string> {
             const diskFormat: DiskFormat = {
                 indexName: idx.name,
                 keyPath: idx.keyPath,
                 multiEntry: idx.multiEntry,
                 unique: idx.unique,
             };
-            return JSON.stringify(serialize(diskFormat));
+            return JSON.stringify(await serialize(diskFormat));
         },
     };
 }

@@ -100,7 +100,7 @@ class RecordStore {
     }
 
     private async changeRecord(r: RecordWithRef) {
-        const serialized = JSON.stringify(serialize(r as any));
+        const serialized = JSON.stringify(await serialize(r as any));
         await this.storage.setItem(
             "value://" + ComputeKey(this.uniqueId, r.r),
             serialized
