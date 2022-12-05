@@ -6,7 +6,7 @@ class FDBVersionChangeEvent extends FakeEvent {
 
     constructor(
         type: "blocked" | "success" | "upgradeneeded" | "versionchange",
-        parameters: { newVersion?: number | null; oldVersion?: number } = {},
+        parameters: { newVersion?: number | null; oldVersion?: number } = {}
     ) {
         super(type);
 
@@ -16,9 +16,7 @@ class FDBVersionChangeEvent extends FakeEvent {
             parameters.oldVersion !== undefined ? parameters.oldVersion : 0;
     }
 
-    public toString() {
-        return "[object IDBVersionChangeEvent]";
-    }
+    public [Symbol.toStringTag] = "IDBVersionChangeEvent";
 }
 
 export default FDBVersionChangeEvent;

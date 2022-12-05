@@ -33,7 +33,7 @@ class FDBKeyRange {
         lower: Key,
         upper: Key,
         lowerOpen: boolean = false,
-        upperOpen: boolean = false,
+        upperOpen: boolean = false
     ) {
         if (arguments.length < 2) {
             throw new TypeError();
@@ -58,7 +58,7 @@ class FDBKeyRange {
         lower: Key | undefined,
         upper: Key | undefined,
         lowerOpen: boolean,
-        upperOpen: boolean,
+        upperOpen: boolean
     ) {
         this.lower = lower;
         this.upper = upper;
@@ -90,9 +90,7 @@ class FDBKeyRange {
         return true;
     }
 
-    public toString() {
-        return "[object IDBKeyRange]";
-    }
+    public [Symbol.toStringTag] = "IDBKeyRange";
 }
 
 export default FDBKeyRange;

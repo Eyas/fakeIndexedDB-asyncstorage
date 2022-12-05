@@ -5,9 +5,7 @@ class FDBOpenDBRequest extends FDBRequest {
     public onupgradeneeded: EventCallback | null = null;
     public onblocked: EventCallback | null = null;
 
-    public toString() {
-        return "[object IDBOpenDBRequest]";
-    }
+    public [Symbol.toStringTag] = "IDBOpenDBRequest";
 }
 
 export default FDBOpenDBRequest;

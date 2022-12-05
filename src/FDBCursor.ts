@@ -636,7 +636,5 @@ export class FDBCursor {
         });
     }
 
-    public toString() {
-        return "[object IDBCursor]";
-    }
+    public [Symbol.toStringTag] = "IDBCursor";
 }

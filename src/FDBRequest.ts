@@ -37,9 +37,7 @@ class FDBRequest extends FakeEventTarget {
         this._result = value;
     }
 
-    public toString() {
-        return "[object IDBRequest]";
-    }
+    public [Symbol.toStringTag] = "IDBRequest";
 }
 
 export default FDBRequest;

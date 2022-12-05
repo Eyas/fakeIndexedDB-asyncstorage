@@ -369,9 +369,7 @@ class FDBFactory {
         return result;
     }
 
-    public toString() {
-        return "[object IDBFactory]";
-    }
+    public [Symbol.toStringTag] = "IDBFactory";
 }
 
 export default FDBFactory;

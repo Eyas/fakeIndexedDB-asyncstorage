@@ -271,9 +271,7 @@ class FDBIndex {
         });
     }
 
-    public toString() {
-        return "[object IDBIndex]";
-    }
+    public [Symbol.toStringTag] = "IDBIndex";
 }
 
 export default FDBIndex;

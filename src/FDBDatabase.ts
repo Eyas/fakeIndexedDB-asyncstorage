@@ -239,9 +239,7 @@ class FDBDatabase extends FakeEventTarget {
         closeConnection(this);
     }
 
-    public toString() {
-        return "[object IDBDatabase]";
-    }
+    public [Symbol.toStringTag] = "IDBDatabase";
 }
 
 export default FDBDatabase;

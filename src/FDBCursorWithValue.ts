@@ -18,9 +18,7 @@ export class FDBCursorWithValue extends FDBCursor {
         super(source, range, direction, request);
     }
 
-    public toString() {
-        return "[object IDBCursorWithValue]";
-    }
+    public [Symbol.toStringTag] = "IDBCursorWithValue";
 }
 
 export type CursorWithValueBuilder = (

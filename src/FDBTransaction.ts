@@ -282,9 +282,7 @@ class FDBTransaction extends FakeEventTarget {
         this._state = "committing";
     }
 
-    public toString() {
-        return "[object IDBRequest]";
-    }
+    public [Symbol.toStringTag] = "IDBRequest";
 }
 
 export default FDBTransaction;
