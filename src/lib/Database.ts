@@ -1,6 +1,6 @@
-import { deserialize, serialize } from "serialize-anything";
 import FDBDatabase from "../FDBDatabase.js";
 import FDBTransaction from "../FDBTransaction.js";
+import { deserialize, serialize } from "../serial/serial.js";
 import { AsyncStringMap2 } from "./asyncMap.js";
 import ObjectStore from "./ObjectStore.js";
 import { queueTask } from "./scheduling.js";
@@ -57,7 +57,7 @@ class Database {
             keyPrefix: `${STORAGE_PREFIX}/${name}/rawObjectStores/`,
             construct(s) {
                 const { objectStoreName, keyPath, autoIncrement } = deserialize(
-                    s
+                    JSON.parse(s)
                 ) as DiskFormat;
                 return ObjectStore.build(
                     db,
@@ -72,7 +72,7 @@ class Database {
                     keyPath: s.keyPath,
                     autoIncrement: s.autoIncrement,
                 };
-                return serialize(diskFormat);
+                return JSON.stringify(serialize(diskFormat));
             },
         });
         return db;

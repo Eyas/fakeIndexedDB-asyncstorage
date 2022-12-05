@@ -50,9 +50,7 @@
         "lib",
         "types.d.ts"
     ],
-    "dependencies": {
-        "serialize-anything": "^1.2.3"
-    },
+    "dependencies": {},
     "devDependencies": {
         "@babel/cli": "^7.18.6",
         "@babel/core": "^7.18.6",

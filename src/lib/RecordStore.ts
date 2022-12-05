@@ -1,5 +1,5 @@
-import { deserialize, serialize } from "serialize-anything";
 import FDBKeyRange from "../FDBKeyRange.js";
+import { deserialize, serialize } from "../serial/serial.js";
 import {
     getByKey,
     getByKeyRange,
@@ -71,7 +71,9 @@ class RecordStore {
                 )
             ).map((recordStr) => {
                 if (recordStr === null) throw new Error("Data Loss!!!");
-                return deserialize(recordStr) as RecordWithRef;
+                return deserialize(
+                    JSON.parse(recordStr)
+                ) as unknown as RecordWithRef;
             });
 
             if (recordIds.length === 0) {
@@ -98,7 +100,7 @@ class RecordStore {
     }
 
     private async changeRecord(r: RecordWithRef) {
-        const serialized = serialize(r);
+        const serialized = JSON.stringify(serialize(r as any));
         await this.storage.setItem(
             "value://" + ComputeKey(this.uniqueId, r.r),
             serialized
