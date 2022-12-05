@@ -83,13 +83,11 @@ type RealReference =
 function buildDvSD<
     T,
     N extends string,
-    DV extends {
-        new (
-            buffer: ArrayBufferLike,
-            byteOffset: number,
-            byteLength: number
-        ): T;
-    }
+    DV extends new (
+        buffer: ArrayBufferLike,
+        byteOffset: number,
+        byteLength: number
+    ) => T
 >(name: N, dv: DV) {
     return {
         name,
