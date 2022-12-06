@@ -54,8 +54,13 @@ const buildRecordAddPut = (
 
     const savedTxnState = objectStore.transaction._state;
     objectStore.transaction._state = "inactive";
-    const clone = structuredClone(value);
-    objectStore.transaction._state = savedTxnState;
+    let clone: typeof value;
+    try {
+        clone = structuredClone(value);
+    } finally {
+        objectStore.transaction._state = savedTxnState;
+    }
+    clone = clone ?? value;
 
     if (objectStore.keyPath !== null) {
         const tempKey = extractKey(objectStore.keyPath, clone);
