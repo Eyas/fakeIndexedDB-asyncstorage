@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import glob from "glob";
-import path from "node:path";
+import path, { dirname } from "node:path";
 
 const skip = [
     // IDL test; out of scope for the time being.
@@ -36,7 +36,7 @@ const outFolder = path.posix.join(__dirname, "converted");
 {
     const filenames = glob.sync("/**/*.{htm,html}", { root: inFolder });
     for (const filename of filenames) {
-        const relative = path.posix.relative(inFolder, filename);
+        const relative = path.relative(inFolder, filename);
         if (skip.includes(relative)) {
             console.log(`Skipping ${relative}.`);
             continue;
@@ -49,7 +49,7 @@ const outFolder = path.posix.join(__dirname, "converted");
         let matches = contents.match(/<script>([\s\S]+?)<\/script>/); // http://stackoverflow.com/q/1979884/786644
         if (matches === null || matches.length < 2) {
             matches = contents.match(
-                /<script type="text\/javascript">([\s\S]+?)<\/script>/,
+                /<script type="text\/javascript">([\s\S]+?)<\/script>/
             ); // http://stackoverflow.com/q/1979884/786644
         }
         if (matches === null || matches.length < 2) {
@@ -62,8 +62,10 @@ const outFolder = path.posix.join(__dirname, "converted");
 
         {
             const relativeWptEnvLocation = path.posix.join(
-                path.posix.relative(path.posix.dirname(dest), __dirname),
-                "wpt-env.js",
+                path
+                    .relative(path.dirname(dest), __dirname)
+                    .replace(/\\/g, "/"),
+                "wpt-env.js"
             );
             codeChunks.push(`import "${relativeWptEnvLocation}";\n`);
         }
@@ -76,7 +78,7 @@ const outFolder = path.posix.join(__dirname, "converted");
 
         const importMatches = matchAll(
             contents,
-            /<script src=["']?(.+?)['"]?>/,
+            /<script src=["']?(.+?)['"]?>/
         );
 
         for (const match of importMatches) {
@@ -86,10 +88,16 @@ const outFolder = path.posix.join(__dirname, "converted");
             if (match[1] === "/resources/testharnessreport.js") {
                 continue;
             }
-            const location = path.posix.join(
-                path.posix.dirname(filename),
-                match[1],
-            );
+            if (match[1] === "/resources/testdriver.js") {
+                continue;
+            }
+            if (match[1] === "/resources/testdriver-vendor.js") {
+                continue;
+            }
+            const relative = match[1].startsWith("resources")
+                ? `/${match[1]}`
+                : match[1];
+            const location = path.join(path.dirname(filename), relative);
             codeChunks.push(fs.readFileSync(location) + "\n");
         }
 
@@ -104,7 +112,7 @@ const outFolder = path.posix.join(__dirname, "converted");
 {
     const filenames = glob.sync("/**/*.any.js", { root: inFolder });
     for (const filename of filenames) {
-        const relative = path.posix.relative(inFolder, filename);
+        const relative = path.relative(inFolder, filename);
         if (skip.includes(relative)) {
             console.log(`Skipping ${relative}.`);
             continue;
@@ -123,22 +131,21 @@ const outFolder = path.posix.join(__dirname, "converted");
 
         {
             const relativeWptEnvLocation = path.posix.join(
-                path.posix.relative(path.posix.dirname(dest), __dirname),
-                "wpt-env.js",
+                path
+                    .relative(path.dirname(dest), __dirname)
+                    .replace(/\\/g, "/"),
+                "wpt-env.js"
             );
             codeChunks.push(`import "${relativeWptEnvLocation}";\n`);
         }
 
         const importMatches = matchAll(
             testScript,
-            /^\/\/\s*META:\s*script=(.+)$/m,
+            /^\/\/\s*META:\s*script=(.+)$/m
         );
 
         for (const match of importMatches) {
-            const location = path.posix.join(
-                path.posix.dirname(filename),
-                match[1],
-            );
+            const location = path.join(path.dirname(filename), match[1]);
             codeChunks.push(fs.readFileSync(location) + "\n");
         }
 
