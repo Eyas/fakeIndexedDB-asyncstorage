@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -409,56 +419,56 @@ promise_test((testCase) => {
                     database.objectStoreNames,
                     ["books", "not_books"],
                     "IDBDatabase.objectStoreNames should include a newly created " +
-                        "store before the transaction is aborted",
+                        "store before the transaction is aborted"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books", "not_books"],
                     "IDBTransaction.objectStoreNames should include a newly created " +
-                        "store before the transaction is aborted",
+                        "store before the transaction is aborted"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => store.get("query"),
                     "IDBObjectStore.get should throw InvalidStateError, indicating " +
                         "that the store is marked for deletion, immediately after " +
-                        "IDBTransaction.abort() returns",
+                        "IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books"],
                     "IDBTransaction.objectStoreNames should stop including the newly " +
-                        "created store immediately after IDBTransaction.abort() returns",
+                        "created store immediately after IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books"],
                     "IDBDatabase.objectStoreNames should stop including the newly " +
-                        "created store immediately after IDBTransaction.abort() returns",
+                        "created store immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 () => store.get("query"),
                 "IDBObjectStore.get should throw InvalidStateError, indicating " +
                     "that the store is marked for deletion, after the transaction is " +
-                    "aborted",
+                    "aborted"
             );
             assert_array_equals(
                 migrationDatabase.objectStoreNames,
                 ["books"],
                 "IDBDatabase.objectStoreNames should stop including the newly " +
-                    "created store after the transaction is aborted",
+                    "created store after the transaction is aborted"
             );
             assert_array_equals(
                 migrationTransaction.objectStoreNames,
                 ["books"],
                 "IDBTransaction.objectStoreNames should stop including the newly " +
-                    "created store after the transaction is aborted",
+                    "created store after the transaction is aborted"
             );
         });
 }, "Created stores get marked as deleted after their transaction aborts");
@@ -481,69 +491,69 @@ promise_test((testCase) => {
                 store = transaction.objectStore("not_books");
 
                 database.deleteObjectStore("not_books");
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => store.get("query"),
                     "IDBObjectStore.get should throw InvalidStateError, indicating " +
                         "that the store is marked for deletion, immediately after " +
-                        "IDBDatabase.deleteObjectStore() returns",
+                        "IDBDatabase.deleteObjectStore() returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books"],
                     "IDBTransaction.objectStoreNames should stop including the " +
                         "deleted store immediately after IDBDatabase.deleteObjectStore() " +
-                        "returns",
+                        "returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books"],
                     "IDBDatabase.objectStoreNames should stop including the newly " +
                         "created store immediately after IDBDatabase.deleteObjectStore() " +
-                        "returns",
+                        "returns"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "TransactionInactiveError",
                     () => store.get("query"),
                     "IDBObjectStore.get should throw TransactionInactiveError, " +
                         "indicating that the store is no longer marked for deletion, " +
-                        "immediately after IDBTransaction.abort() returns",
+                        "immediately after IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books", "not_books"],
                     "IDBDatabase.objectStoreNames should include the deleted store " +
-                        "store immediately after IDBTransaction.abort() returns",
+                        "store immediately after IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books", "not_books"],
                     "IDBTransaction.objectStoreNames should include the deleted " +
-                        "store immediately after IDBTransaction.abort() returns",
+                        "store immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "TransactionInactiveError",
                 () => store.get("query"),
                 "IDBObjectStore.get should throw TransactionInactiveError, " +
                     "indicating that the store is no longer marked for deletion, " +
-                    "after the transaction is aborted",
+                    "after the transaction is aborted"
             );
             assert_array_equals(
                 migrationDatabase.objectStoreNames,
                 ["books", "not_books"],
                 "IDBDatabase.objectStoreNames should include the previously " +
-                    "deleted store after the transaction is aborted",
+                    "deleted store after the transaction is aborted"
             );
             assert_array_equals(
                 migrationTransaction.objectStoreNames,
                 ["books", "not_books"],
                 "IDBTransaction.objectStoreNames should include the previously " +
-                    "deleted store after the transaction is aborted",
+                    "deleted store after the transaction is aborted"
             );
         });
 }, "Deleted stores get marked as not-deleted after the transaction aborts");
@@ -567,79 +577,79 @@ promise_test((testCase) => {
                     database.objectStoreNames,
                     ["books", "not_books"],
                     "IDBDatabase.objectStoreNames should include a newly created " +
-                        "store before the transaction is aborted",
+                        "store before the transaction is aborted"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books", "not_books"],
                     "IDBTransaction.objectStoreNames should include a newly created " +
-                        "store before the transaction is aborted",
+                        "store before the transaction is aborted"
                 );
 
                 database.deleteObjectStore("not_books");
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => store.get("query"),
                     "IDBObjectStore.get should throw InvalidStateError, indicating " +
                         "that the store is marked for deletion, immediately after " +
-                        "IDBDatabase.deleteObjectStore() returns",
+                        "IDBDatabase.deleteObjectStore() returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books"],
                     "IDBTransaction.objectStoreNames should stop including the " +
                         "deleted store immediately after IDBDatabase.deleteObjectStore() " +
-                        "returns",
+                        "returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books"],
                     "IDBDatabase.objectStoreNames should stop including the newly " +
                         "created store immediately after IDBDatabase.deleteObjectStore() " +
-                        "returns",
+                        "returns"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => store.get("query"),
                     "IDBObjectStore.get should throw InvalidStateError, indicating " +
                         "that the store is still marked for deletion, immediately after " +
-                        "IDBTransaction.abort() returns",
+                        "IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books"],
                     "IDBTransaction.objectStoreNames should not include the newly " +
-                        "created store immediately after IDBTransaction.abort() returns",
+                        "created store immediately after IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books"],
                     "IDBDatabase.objectStoreNames should not include the newly " +
-                        "created store immediately after IDBTransaction.abort() returns",
+                        "created store immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 () => store.get("query"),
                 "IDBObjectStore.get should throw InvalidStateError, indicating " +
                     "that the store is still marked for deletion, after the " +
-                    "transaction is aborted",
+                    "transaction is aborted"
             );
             assert_array_equals(
                 migrationDatabase.objectStoreNames,
                 ["books"],
                 "IDBDatabase.objectStoreNames should not include the newly " +
-                    "created store after the transaction is aborted",
+                    "created store after the transaction is aborted"
             );
             assert_array_equals(
                 migrationTransaction.objectStoreNames,
                 ["books"],
                 "IDBTransaction.objectStoreNames should not include the newly " +
-                    "created store after the transaction is aborted",
+                    "created store after the transaction is aborted"
             );
         });
 }, "Created+deleted stores are still marked as deleted after their " + "transaction aborts");
@@ -665,14 +675,14 @@ promise_test((testCase) => {
                     ["books"],
                     "IDBTransaction.objectStoreNames should stop including the " +
                         "deleted store immediately after IDBDatabase.deleteObjectStore() " +
-                        "returns",
+                        "returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books"],
                     "IDBDatabase.objectStoreNames should stop including the newly " +
                         "created store immediately after IDBDatabase.deleteObjectStore() " +
-                        "returns",
+                        "returns"
                 );
 
                 transaction.abort();
@@ -680,28 +690,28 @@ promise_test((testCase) => {
                     database.objectStoreNames,
                     ["books", "not_books"],
                     "IDBDatabase.objectStoreNames should include the deleted store " +
-                        "store immediately after IDBTransaction.abort() returns",
+                        "store immediately after IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books", "not_books"],
                     "IDBTransaction.objectStoreNames should include the deleted " +
-                        "store immediately after IDBTransaction.abort() returns",
+                        "store immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
             assert_array_equals(
                 migrationDatabase.objectStoreNames,
                 ["books", "not_books"],
                 "IDBDatabase.objectStoreNames should include the previously " +
-                    "deleted store after the transaction is aborted",
+                    "deleted store after the transaction is aborted"
             );
             assert_array_equals(
                 migrationTransaction.objectStoreNames,
                 ["books", "not_books"],
                 "IDBTransaction.objectStoreNames should include the previously " +
-                    "deleted store after the transaction is aborted",
+                    "deleted store after the transaction is aborted"
             );
         });
 }, "Un-instantiated deleted stores get marked as not-deleted after the " + "transaction aborts");

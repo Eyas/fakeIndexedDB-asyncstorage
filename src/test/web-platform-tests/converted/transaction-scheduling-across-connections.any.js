@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,104 +204,103 @@ function keep_alive(tx, store_name) {
     };
 }
 
-function getkey_test(func, name) {
-    indexeddb_test(
-        function (t, db, tx) {
-            var basic = db.createObjectStore("basic");
-            var key_path_store = db.createObjectStore("key path", {
-                keyPath: "id",
-            });
-            var key_generator_store = db.createObjectStore("key generator", {
-                autoIncrement: true,
-            });
-            var key_generator_and_path_store = db.createObjectStore(
-                "key generator and key path",
-                { autoIncrement: true, key_path: "id" },
-            );
-
-            for (var i = 1; i <= 10; ++i) {
-                basic.put("value: " + i, i);
-                key_path_store.put({ id: i });
-                key_generator_store.put("value: " + i);
-                key_generator_and_path_store.put({});
-            }
-        },
-        func,
-        name,
-    );
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
 }
 
-getkey_test(function (t, db) {
-    var tx = db.transaction("basic");
-    var store = tx.objectStore("basic");
-    assert_throws(TypeError(), function () {
-        store.getKey();
-    });
-    assert_throws({ name: "DataError" }, function () {
-        store.getKey(null);
-    });
-    assert_throws({ name: "DataError" }, function () {
-        store.getKey({});
-    });
-    t.done();
-}, "IDBObjectStore.getKey() - invalid parameters");
+// META: script=resources/support.js
 
-["basic", "key path", "key generator", "key generator and key path"].forEach(
-    function (store_name) {
-        getkey_test(function (t, db) {
-            var tx = db.transaction(store_name);
-            var store = tx.objectStore(store_name);
-            var request = store.getKey(5);
-            request.onerror = t.unreached_func("request failed");
-            request.onsuccess = t.step_func(function () {
-                assert_equals(request.result, 5);
-            });
-            tx.onabort = t.unreached_func("transaction aborted");
-            tx.oncomplete = t.step_func(function () {
-                t.done();
-            });
-        }, "IDBObjectStore.getKey() - " + store_name + " - key");
-
-        getkey_test(function (t, db) {
-            var tx = db.transaction(store_name);
-            var store = tx.objectStore(store_name);
-            var request = store.getKey(IDBKeyRange.lowerBound(4.5));
-            request.onerror = t.unreached_func("request failed");
-            request.onsuccess = t.step_func(function () {
-                assert_equals(request.result, 5);
-            });
-            tx.onabort = t.unreached_func("transaction aborted");
-            tx.oncomplete = t.step_func(function () {
-                t.done();
-            });
-        }, "IDBObjectStore.getKey() - " + store_name + " - range");
-
-        getkey_test(function (t, db) {
-            var tx = db.transaction(store_name);
-            var store = tx.objectStore(store_name);
-            var request = store.getKey(11);
-            request.onerror = t.unreached_func("request failed");
-            request.onsuccess = t.step_func(function () {
-                assert_equals(request.result, undefined);
-            });
-            tx.onabort = t.unreached_func("transaction aborted");
-            tx.oncomplete = t.step_func(function () {
-                t.done();
-            });
-        }, "IDBObjectStore.getKey() - " + store_name + " - key - no match");
-
-        getkey_test(function (t, db) {
-            var tx = db.transaction(store_name);
-            var store = tx.objectStore(store_name);
-            var request = store.getKey(IDBKeyRange.lowerBound(11));
-            request.onerror = t.unreached_func("request failed");
-            request.onsuccess = t.step_func(function () {
-                assert_equals(request.result, undefined);
-            });
-            tx.onabort = t.unreached_func("transaction aborted");
-            tx.oncomplete = t.step_func(function () {
-                t.done();
-            });
-        }, "IDBObjectStore.getKey() - " + store_name + " - range - no match");
+indexeddb_test(
+    (t, db) => {
+        const store = db.createObjectStore("store");
     },
+
+    (t, db1) => {
+        // Open a second connection to the same database.
+        const open_request = indexedDB.open(db1.name);
+        open_request.onerror = t.unreached_func("open() should succeed");
+        open_request.onupgradeneeded = t.unreached_func(
+            "second connection should not upgrade"
+        );
+        open_request.onsuccess = t.step_func(() => {
+            const db2 = open_request.result;
+            t.add_cleanup(() => {
+                db2.close();
+            });
+
+            const transaction1 = db1.transaction("store", "readwrite", {
+                durability: "relaxed",
+            });
+            transaction1.onabort = t.unreached_func(
+                "transaction1 should complete"
+            );
+
+            const transaction2 = db2.transaction("store", "readwrite", {
+                durability: "relaxed",
+            });
+            transaction2.onabort = t.unreached_func(
+                "transaction2 should complete"
+            );
+
+            let transaction1PutSuccess = false;
+            let transaction1Complete = false;
+            let transaction2PutSuccess = false;
+
+            // Keep transaction1 alive for a while and ensure transaction2
+            // doesn't start.
+
+            let count = 0;
+            (function doTransaction1Put() {
+                const request = transaction1
+                    .objectStore("store")
+                    .put(1, count++);
+                request.onerror = t.unreached_func("request should succeed");
+                request.onsuccess = t.step_func((evt) => {
+                    transaction1PutSuccess = true;
+                    if (count < 5) {
+                        doTransaction1Put();
+                    }
+                });
+            })();
+
+            transaction1.oncomplete = t.step_func((evt) => {
+                transaction1Complete = true;
+                assert_false(
+                    transaction2PutSuccess,
+                    "transaction1 should complete before transaction2 put succeeds"
+                );
+            });
+
+            const request = transaction2.objectStore("store").put(2, 0);
+            request.onerror = t.unreached_func("request should succeed");
+            request.onsuccess = t.step_func((evt) => {
+                transaction2PutSuccess = true;
+                assert_true(
+                    transaction1Complete,
+                    "transaction2 put should not succeed before transaction1 completes"
+                );
+            });
+
+            transaction2.oncomplete = t.step_func_done((evt) => {
+                assert_true(
+                    transaction1PutSuccess,
+                    "transaction1 put should succeed before transaction2 runs"
+                );
+                assert_true(
+                    transaction1Complete,
+                    "transaction1 should complete before transaction2 runs"
+                );
+                assert_true(
+                    transaction2PutSuccess,
+                    "transaction2 put should succeed before transaction2 completes"
+                );
+            });
+        });
+    },
+    "Check that readwrite transactions with overlapping scopes do not run in parallel."
 );

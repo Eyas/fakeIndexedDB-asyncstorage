@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 function with_stores_test(store_names, open_func, description) {
     indexeddb_test(
         function (t, db, tx) {
@@ -202,7 +221,7 @@ function with_stores_test(store_names, open_func, description) {
             });
         },
         open_func,
-        description,
+        description
     );
 }
 
@@ -211,66 +230,66 @@ indexeddb_test(
         assert_array_equals(
             tx.objectStoreNames,
             [],
-            "transaction objectStoreNames should be empty",
+            "transaction objectStoreNames should be empty"
         );
         assert_array_equals(
             db.objectStoreNames,
             tx.objectStoreNames,
-            "connection and transacton objectStoreNames should match",
+            "connection and transacton objectStoreNames should match"
         );
 
         db.createObjectStore("s1");
         assert_array_equals(
             tx.objectStoreNames,
             ["s1"],
-            "transaction objectStoreNames should have new store",
+            "transaction objectStoreNames should have new store"
         );
         assert_array_equals(
             db.objectStoreNames,
             tx.objectStoreNames,
-            "connection and transacton objectStoreNames should match",
+            "connection and transacton objectStoreNames should match"
         );
 
         db.createObjectStore("s3");
         assert_array_equals(
             tx.objectStoreNames,
             ["s1", "s3"],
-            "transaction objectStoreNames should have new store",
+            "transaction objectStoreNames should have new store"
         );
         assert_array_equals(
             db.objectStoreNames,
             tx.objectStoreNames,
-            "connection and transacton objectStoreNames should match",
+            "connection and transacton objectStoreNames should match"
         );
 
         db.createObjectStore("s2");
         assert_array_equals(
             tx.objectStoreNames,
             ["s1", "s2", "s3"],
-            "transaction objectStoreNames should be sorted",
+            "transaction objectStoreNames should be sorted"
         );
         assert_array_equals(
             db.objectStoreNames,
             tx.objectStoreNames,
-            "connection and transacton objectStoreNames should match",
+            "connection and transacton objectStoreNames should match"
         );
 
         db.deleteObjectStore("s1");
         assert_array_equals(
             tx.objectStoreNames,
             ["s2", "s3"],
-            "transaction objectStoreNames should be updated after delete",
+            "transaction objectStoreNames should be updated after delete"
         );
         assert_array_equals(
             db.objectStoreNames,
             tx.objectStoreNames,
-            "connection and transacton objectStoreNames should match",
+            "connection and transacton objectStoreNames should match"
         );
     },
     function (t, db) {
         t.done();
     },
-    "IDBTransaction.objectStoreNames - during upgrade transaction",
+    "IDBTransaction.objectStoreNames - during upgrade transaction"
 );
 
 (function () {
@@ -291,41 +310,41 @@ indexeddb_test(
                 assert_array_equals(
                     tx2.objectStoreNames,
                     ["s2", "s3"],
-                    "transaction should have previous stores in scope",
+                    "transaction should have previous stores in scope"
                 );
                 assert_array_equals(
                     db2.objectStoreNames,
                     tx2.objectStoreNames,
-                    "connection and transacton objectStoreNames should match",
+                    "connection and transacton objectStoreNames should match"
                 );
 
                 db2.createObjectStore("s4");
                 assert_array_equals(
                     tx2.objectStoreNames,
                     ["s2", "s3", "s4"],
-                    "transaction should have new store in scope",
+                    "transaction should have new store in scope"
                 );
                 assert_array_equals(
                     db2.objectStoreNames,
                     tx2.objectStoreNames,
-                    "connection and transacton objectStoreNames should match",
+                    "connection and transacton objectStoreNames should match"
                 );
 
                 assert_array_equals(
                     saved_tx.objectStoreNames,
                     ["s2", "s3"],
-                    "previous transaction objectStoreNames should be unchanged",
+                    "previous transaction objectStoreNames should be unchanged"
                 );
                 assert_array_equals(
                     db.objectStoreNames,
                     saved_tx.objectStoreNames,
-                    "connection and transaction objectStoreNames should match",
+                    "connection and transaction objectStoreNames should match"
                 );
                 db2.close();
                 t.done();
             });
         },
-        "IDBTransaction.objectStoreNames - value after close",
+        "IDBTransaction.objectStoreNames - value after close"
     );
 })();
 
@@ -333,18 +352,19 @@ with_stores_test(
     ["s1", "s2"],
     function (t, db) {
         assert_array_equals(
-            db.transaction("s1").objectStoreNames,
+            db.transaction("s1", "readonly", { durability: "relaxed" })
+                .objectStoreNames,
             ["s1"],
-            "transaction should have one store in scope",
+            "transaction should have one store in scope"
         );
         assert_array_equals(
             db.transaction(["s1", "s2"]).objectStoreNames,
             ["s1", "s2"],
-            "transaction should have two stores in scope",
+            "transaction should have two stores in scope"
         );
         t.done();
     },
-    "IDBTransaction.objectStoreNames - transaction scope",
+    "IDBTransaction.objectStoreNames - transaction scope"
 );
 
 with_stores_test(
@@ -357,12 +377,12 @@ with_stores_test(
             assert_array_equals(
                 tx.objectStoreNames,
                 ["s1", "s2"],
-                "objectStoreNames should return scope after transaction commits",
+                "objectStoreNames should return scope after transaction commits"
             );
             t.done();
         });
     },
-    "IDBTransaction.objectStoreNames - value after commit",
+    "IDBTransaction.objectStoreNames - value after commit"
 );
 
 with_stores_test(
@@ -376,12 +396,12 @@ with_stores_test(
             assert_array_equals(
                 tx.objectStoreNames,
                 ["s1", "s2"],
-                "objectStoreNames should return scope after transaction aborts",
+                "objectStoreNames should return scope after transaction aborts"
             );
             t.done();
         });
     },
-    "IDBTransaction.objectStoreNames - value after abort",
+    "IDBTransaction.objectStoreNames - value after abort"
 );
 
 with_stores_test(
@@ -390,11 +410,11 @@ with_stores_test(
         assert_array_equals(
             db.transaction(["s3", "s2", "s1"]).objectStoreNames,
             ["s1", "s2", "s3"],
-            "transaction objectStoreNames should be sorted",
+            "transaction objectStoreNames should be sorted"
         );
         t.done();
     },
-    "IDBTransaction.objectStoreNames - sorting",
+    "IDBTransaction.objectStoreNames - sorting"
 );
 
 with_stores_test(
@@ -403,11 +423,11 @@ with_stores_test(
         assert_array_equals(
             db.transaction(["s2", "s1", "s2"]).objectStoreNames,
             ["s1", "s2"],
-            "transaction objectStoreNames should not have duplicates",
+            "transaction objectStoreNames should not have duplicates"
         );
         t.done();
     },
-    "IDBTransaction.objectStoreNames - no duplicates",
+    "IDBTransaction.objectStoreNames - no duplicates"
 );
 
 var unusual_names = [
@@ -443,19 +463,19 @@ indexeddb_test(
         assert_array_equals(
             tx.objectStoreNames,
             unusual_names,
-            "transaction should have names sorted",
+            "transaction should have names sorted"
         );
     },
     function (t, db) {
         var tx = db.transaction(
-            unusual_names.slice().reverse().concat(unusual_names),
+            unusual_names.slice().reverse().concat(unusual_names)
         );
         assert_array_equals(
             tx.objectStoreNames,
             unusual_names,
-            "transaction should have names sorted with no duplicates",
+            "transaction should have names sorted with no duplicates"
         );
         t.done();
     },
-    "IDBTransaction.objectStoreNames - unusual names",
+    "IDBTransaction.objectStoreNames - unusual names"
 );

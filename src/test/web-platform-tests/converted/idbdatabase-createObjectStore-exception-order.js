@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db, txn, rq) => {
         db.createObjectStore("s");
@@ -207,18 +226,18 @@ indexeddb_test(
         txn.onabort = () => {
             setTimeout(
                 t.step_func(() => {
-                    assert_throws(
+                    assert_throws_dom(
                         "InvalidStateError",
                         () => {
                             db.createObjectStore("s2");
                         },
                         '"running an upgrade transaction" check (InvalidStateError) ' +
-                            'should precede "not active" check (TransactionInactiveError)',
+                            'should precede "not active" check (TransactionInactiveError)'
                     );
 
                     t.done();
                 }),
-                0,
+                0
             );
         };
         txn.abort();
@@ -228,7 +247,7 @@ indexeddb_test(
     },
     "IDBDatabase.createObjectStore exception order: " +
         "InvalidStateError vs. TransactionInactiveError",
-    { upgrade_will_abort: true },
+    { upgrade_will_abort: true }
 );
 
 indexeddb_test(
@@ -237,13 +256,13 @@ indexeddb_test(
 
         txn.abort();
 
-        assert_throws(
+        assert_throws_dom(
             "TransactionInactiveError",
             () => {
                 db.createObjectStore("s2", { keyPath: "-invalid-" });
             },
             '"not active" check (TransactionInactiveError) should precede ' +
-                '"valid key path" check (SyntaxError)',
+                '"valid key path" check (SyntaxError)'
         );
 
         t.done();
@@ -253,41 +272,41 @@ indexeddb_test(
     },
     "IDBDatabase.createObjectStore exception order: " +
         "TransactionInactiveError vs. SyntaxError",
-    { upgrade_will_abort: true },
+    { upgrade_will_abort: true }
 );
 
 indexeddb_test(
     (t, db) => {
         db.createObjectStore("s");
-        assert_throws(
+        assert_throws_dom(
             "SyntaxError",
             () => {
                 db.createObjectStore("s", { keyPath: "not a valid key path" });
             },
             '"Invalid key path" check (SyntaxError) should precede ' +
-                '"duplicate store name" check (ConstraintError)',
+                '"duplicate store name" check (ConstraintError)'
         );
         t.done();
     },
     (t, db) => {},
     "IDBDatabase.createObjectStore exception order: " +
-        "SyntaxError vs. ConstraintError",
+        "SyntaxError vs. ConstraintError"
 );
 
 indexeddb_test(
     (t, db) => {
         db.createObjectStore("s");
-        assert_throws(
+        assert_throws_dom(
             "ConstraintError",
             () => {
                 db.createObjectStore("s", { autoIncrement: true, keyPath: "" });
             },
             '"already exists" check (ConstraintError) should precede ' +
-                '"autoIncrement vs. keyPath" check (InvalidAccessError)',
+                '"autoIncrement vs. keyPath" check (InvalidAccessError)'
         );
         t.done();
     },
     (t, db) => {},
     "IDBDatabase.createObjectStore exception order: " +
-        "ConstraintError vs. InvalidAccessError",
+        "ConstraintError vs. InvalidAccessError"
 );

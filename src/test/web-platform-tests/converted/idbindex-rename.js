@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -400,18 +410,20 @@ promise_test((testCase) => {
         authorIndex = store.index("by_author");
     })
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             assert_array_equals(
                 store.indexNames,
                 ["by_author", "by_title"],
-                "Test setup should have created two indexes",
+                "Test setup should have created two indexes"
             );
             authorIndex2 = store.index("by_author");
             return checkAuthorIndexContents(
                 testCase,
                 authorIndex2,
-                "The index should have the expected contents before any renaming",
+                "The index should have the expected contents before any renaming"
             ).then(() => database.close());
         })
         .then(() =>
@@ -423,41 +435,43 @@ promise_test((testCase) => {
                 assert_equals(
                     renamedAuthorIndex.name,
                     "renamed_by_author",
-                    "IDBIndex name should change immediately after a rename",
+                    "IDBIndex name should change immediately after a rename"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["by_title", "renamed_by_author"],
-                    "IDBObjectStore.indexNames should immediately reflect the rename",
+                    "IDBObjectStore.indexNames should immediately reflect the rename"
                 );
                 assert_equals(
                     store.index("renamed_by_author"),
                     renamedAuthorIndex,
                     "IDBObjectStore.index should return the renamed index store when " +
-                        "queried using the new name immediately after the rename",
+                        "queried using the new name immediately after the rename"
                 );
-                assert_throws(
+                assert_throws_dom(
                     "NotFoundError",
                     () => store.index("by_author"),
                     "IDBObjectStore.index should throw when queried using the " +
-                        "renamed index's old name immediately after the rename",
+                        "renamed index's old name immediately after the rename"
                 );
-            }),
+            })
         )
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             assert_array_equals(
                 store.indexNames,
                 ["by_title", "renamed_by_author"],
                 "IDBObjectStore.indexNames should still reflect the rename after " +
-                    "the versionchange transaction commits",
+                    "the versionchange transaction commits"
             );
             renamedAuthorIndex2 = store.index("renamed_by_author");
             return checkAuthorIndexContents(
                 testCase,
                 renamedAuthorIndex2,
-                "Renaming an index should not change its contents",
+                "Renaming an index should not change its contents"
             ).then(() => database.close());
         })
         .then(() => {
@@ -465,25 +479,25 @@ promise_test((testCase) => {
                 authorIndex.name,
                 "by_author",
                 "IDBIndex obtained before the rename transaction should not " +
-                    "reflect the rename",
+                    "reflect the rename"
             );
             assert_equals(
                 authorIndex2.name,
                 "by_author",
                 "IDBIndex obtained before the rename transaction should not " +
-                    "reflect the rename",
+                    "reflect the rename"
             );
             assert_equals(
                 renamedAuthorIndex.name,
                 "renamed_by_author",
                 "IDBIndex used in the rename transaction should keep reflecting " +
-                    "the new name after the transaction is committed",
+                    "the new name after the transaction is committed"
             );
             assert_equals(
                 renamedAuthorIndex2.name,
                 "renamed_by_author",
                 "IDBIndex obtained after the rename transaction should reflect " +
-                    "the new name",
+                    "the new name"
             );
         });
 }, "IndexedDB index rename in new transaction");
@@ -499,40 +513,42 @@ promise_test((testCase) => {
         assert_equals(
             renamedAuthorIndex.name,
             "renamed_by_author",
-            "IDBIndex name should change immediately after a rename",
+            "IDBIndex name should change immediately after a rename"
         );
         assert_array_equals(
             store.indexNames,
             ["by_title", "renamed_by_author"],
-            "IDBObjectStore.indexNames should immediately reflect the rename",
+            "IDBObjectStore.indexNames should immediately reflect the rename"
         );
         assert_equals(
             store.index("renamed_by_author"),
             renamedAuthorIndex,
             "IDBObjectStore.index should return the renamed index store when " +
-                "queried using the new name immediately after the rename",
+                "queried using the new name immediately after the rename"
         );
-        assert_throws(
+        assert_throws_dom(
             "NotFoundError",
             () => store.index("by_author"),
             "IDBObjectStore.index should throw when queried using the " +
-                "renamed index's old name immediately after the rename",
+                "renamed index's old name immediately after the rename"
         );
     })
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             assert_array_equals(
                 store.indexNames,
                 ["by_title", "renamed_by_author"],
                 "IDBObjectStore.indexNames should still reflect the rename after " +
-                    "the versionchange transaction commits",
+                    "the versionchange transaction commits"
             );
             renamedAuthorIndex2 = store.index("renamed_by_author");
             return checkAuthorIndexContents(
                 testCase,
                 renamedAuthorIndex2,
-                "Renaming an index should not change its contents",
+                "Renaming an index should not change its contents"
             ).then(() => database.close());
         })
         .then(() => {
@@ -540,13 +556,13 @@ promise_test((testCase) => {
                 renamedAuthorIndex.name,
                 "renamed_by_author",
                 "IDBIndex used in the rename transaction should keep reflecting " +
-                    "the new name after the transaction is committed",
+                    "the new name after the transaction is committed"
             );
             assert_equals(
                 renamedAuthorIndex2.name,
                 "renamed_by_author",
                 "IDBIndex obtained after the rename transaction should reflect " +
-                    "the new name",
+                    "the new name"
             );
         });
 }, "IndexedDB index rename in the transaction where it is created");
@@ -567,25 +583,27 @@ promise_test((testCase) => {
                     store.indexNames,
                     ["by_author", "by_title"],
                     "Renaming an index to the same name should not change the " +
-                        "index's IDBObjectStore.indexNames",
+                        "index's IDBObjectStore.indexNames"
                 );
-            }),
+            })
         )
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             assert_array_equals(
                 store.indexNames,
                 ["by_author", "by_title"],
                 "Committing a transaction that renames a store to the same name " +
-                    "should not change the index's IDBObjectStore.indexNames",
+                    "should not change the index's IDBObjectStore.indexNames"
             );
             const index = store.index("by_author");
             return checkAuthorIndexContents(
                 testCase,
                 index,
                 "Committing a transaction that renames an index to the same name " +
-                    "should not change the index's contents",
+                    "should not change the index's contents"
             ).then(() => database.close());
         });
 }, "IndexedDB index rename to the same name succeeds");
@@ -606,24 +624,26 @@ promise_test((testCase) => {
                 assert_array_equals(
                     store.indexNames,
                     ["by_title"],
-                    "IDBObjectStore.indexNames should immediately reflect the rename",
+                    "IDBObjectStore.indexNames should immediately reflect the rename"
                 );
-            }),
+            })
         )
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             assert_array_equals(
                 store.indexNames,
                 ["by_title"],
                 "IDBObjectStore.indexNames should still reflect the rename after " +
-                    "the versionchange transaction commits",
+                    "the versionchange transaction commits"
             );
             const index = store.index("by_title");
             return checkAuthorIndexContents(
                 testCase,
                 index,
-                "Renaming an index should not change its contents",
+                "Renaming an index should not change its contents"
             ).then(() => database.close());
         });
 }, "IndexedDB index rename to the name of a deleted index succeeds");
@@ -645,29 +665,31 @@ promise_test((testCase) => {
                     store.indexNames,
                     ["by_author", "by_title"],
                     "IDBObjectStore.indexNames should reflect the swap immediately " +
-                        "after the renames",
+                        "after the renames"
                 );
                 return checkTitleIndexContents(
                     testCase,
                     store.index("by_author"),
-                    "Renaming an index should not change its contents",
+                    "Renaming an index should not change its contents"
                 );
-            }),
+            })
         )
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             assert_array_equals(
                 store.indexNames,
                 ["by_author", "by_title"],
                 "IDBObjectStore.indexNames should still reflect the swap after " +
-                    "the versionchange transaction commits",
+                    "the versionchange transaction commits"
             );
             const index = store.index("by_title");
             return checkAuthorIndexContents(
                 testCase,
                 index,
-                "Renaming an index should not change its contents",
+                "Renaming an index should not change its contents"
             ).then(() => database.close());
         });
 }, "IndexedDB index swapping via renames succeeds");
@@ -689,13 +711,13 @@ promise_test((testCase) => {
                     index.name,
                     "42",
                     "IDBIndex name should change immediately after a rename to a " +
-                        "number",
+                        "number"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["42", "by_title"],
                     "IDBObjectStore.indexNames should immediately reflect the " +
-                        "stringifying rename",
+                        "stringifying rename"
                 );
 
                 index.name = true;
@@ -703,7 +725,7 @@ promise_test((testCase) => {
                     index.name,
                     "true",
                     "IDBIndex name should change immediately after a rename to a " +
-                        "boolean",
+                        "boolean"
                 );
 
                 index.name = {};
@@ -711,7 +733,7 @@ promise_test((testCase) => {
                     index.name,
                     "[object Object]",
                     "IDBIndex name should change immediately after a rename to an " +
-                        "object",
+                        "object"
                 );
 
                 index.name = () => null;
@@ -719,7 +741,7 @@ promise_test((testCase) => {
                     index.name,
                     "() => null",
                     "IDBIndex name should change immediately after a rename to a " +
-                        "function",
+                        "function"
                 );
 
                 index.name = undefined;
@@ -727,24 +749,26 @@ promise_test((testCase) => {
                     index.name,
                     "undefined",
                     "IDBIndex name should change immediately after a rename to " +
-                        "undefined",
+                        "undefined"
                 );
-            }),
+            })
         )
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             assert_array_equals(
                 store.indexNames,
                 ["by_title", "undefined"],
                 "IDBObjectStore.indexNames should reflect the last rename " +
-                    "after the versionchange transaction commits",
+                    "after the versionchange transaction commits"
             );
             const index = store.index("undefined");
             return checkAuthorIndexContents(
                 testCase,
                 index,
-                "Renaming an index should not change its contents",
+                "Renaming an index should not change its contents"
             ).then(() => database.close());
         });
 }, "IndexedDB index rename stringifies non-string names");
@@ -768,32 +792,33 @@ for (let escapedName of ["", "\\u0000", "\\uDC00\\uD800"])
                         assert_equals(
                             index.name,
                             name,
-                            "IDBIndex name should change immediately after the rename",
+                            "IDBIndex name should change immediately after the rename"
                         );
                         assert_array_equals(
                             store.indexNames,
                             [name, "by_title"].sort(),
-                            "IDBObjectStore.indexNames should immediately reflect the rename",
+                            "IDBObjectStore.indexNames should immediately reflect the rename"
                         );
-                    }),
+                    })
                 )
                 .then((database) => {
                     const transaction = database.transaction(
                         "books",
                         "readonly",
+                        { durability: "relaxed" }
                     );
                     const store = transaction.objectStore("books");
                     assert_array_equals(
                         store.indexNames,
                         [name, "by_title"].sort(),
                         "IDBObjectStore.indexNames should reflect the rename " +
-                            "after the versionchange transaction commits",
+                            "after the versionchange transaction commits"
                     );
                     const index = store.index(name);
                     return checkAuthorIndexContents(
                         testCase,
                         index,
-                        "Renaming an index should not change its contents",
+                        "Renaming an index should not change its contents"
                     ).then(() => database.close());
                 });
         }, 'IndexedDB index can be renamed to "' + escapedName + '"');

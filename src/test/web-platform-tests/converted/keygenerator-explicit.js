@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 function big_key_test(key, description) {
     indexeddb_test(
         (t, db) => {
@@ -202,7 +221,9 @@ function big_key_test(key, description) {
             db.createObjectStore("store", { autoIncrement: true });
         },
         (t, db) => {
-            const tx = db.transaction("store", "readwrite");
+            const tx = db.transaction("store", "readwrite", {
+                durability: "relaxed",
+            });
             const store = tx.objectStore("store");
             const value = 0;
             let request;
@@ -213,7 +234,7 @@ function big_key_test(key, description) {
                 assert_equals(
                     e.target.result,
                     1,
-                    "Key generator should initially be 1",
+                    "Key generator should initially be 1"
                 );
             });
 
@@ -223,7 +244,7 @@ function big_key_test(key, description) {
                 assert_equals(
                     e.target.result,
                     2,
-                    "Key generator should increment",
+                    "Key generator should increment"
                 );
             });
 
@@ -233,7 +254,7 @@ function big_key_test(key, description) {
                 assert_equals(
                     e.target.result,
                     1000,
-                    "Explicit key should be used",
+                    "Explicit key should be used"
                 );
             });
 
@@ -243,7 +264,7 @@ function big_key_test(key, description) {
                 assert_equals(
                     e.target.result,
                     1001,
-                    "Key generator should have updated",
+                    "Key generator should have updated"
                 );
             });
 
@@ -253,7 +274,7 @@ function big_key_test(key, description) {
                 assert_equals(
                     e.target.result,
                     key,
-                    "Explicit key should be used",
+                    "Explicit key should be used"
                 );
             });
 
@@ -267,7 +288,7 @@ function big_key_test(key, description) {
                     assert_equals(
                         e.target.error.name,
                         "ConstraintError",
-                        "Key generator should have returned failure",
+                        "Key generator should have returned failure"
                     );
                 });
             } else {
@@ -279,7 +300,7 @@ function big_key_test(key, description) {
                     assert_equals(
                         e.target.result,
                         1002,
-                        "Key generator should have updated",
+                        "Key generator should have updated"
                     );
                 });
             }
@@ -290,7 +311,7 @@ function big_key_test(key, description) {
                 assert_equals(
                     e.target.result,
                     2000,
-                    "Explicit key should be used",
+                    "Explicit key should be used"
                 );
             });
 
@@ -301,7 +322,7 @@ function big_key_test(key, description) {
                 t.done();
             });
         },
-        description,
+        description
     );
 }
 
@@ -353,6 +374,6 @@ function big_key_test(key, description) {
 ].forEach(function (testCase) {
     big_key_test(
         testCase.key,
-        `Key generator vs. explicit key ${testCase.description}`,
+        `Key generator vs. explicit key ${testCase.description}`
     );
 });

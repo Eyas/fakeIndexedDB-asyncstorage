@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -408,36 +418,36 @@ promise_test((t) => {
                                     assert_equals(
                                         request.transaction,
                                         transaction,
-                                        "The open request's transaction should be reset after onabort",
+                                        "The open request's transaction should be reset after onabort"
                                     );
-                                    assert_throws(
+                                    assert_throws_dom(
                                         "InvalidStateError",
                                         () => {
                                             database.createObjectStore(
-                                                "books2",
+                                                "books2"
                                             );
                                         },
                                         "createObjectStore exception should reflect that the " +
-                                            "transaction is no longer running",
+                                            "transaction is no longer running"
                                     );
-                                    assert_throws(
+                                    assert_throws_dom(
                                         "InvalidStateError",
                                         () => {
                                             database.deleteObjectStore("books");
                                         },
                                         "deleteObjectStore exception should reflect that the " +
-                                            "transaction is no longer running",
+                                            "transaction is no longer running"
                                     );
                                     resolve();
-                                }),
+                                })
                             );
                         },
-                        false,
+                        false
                     );
                     transaction.objectStore("books").add(BOOKS_RECORD_DATA[0]);
                     transaction._willBeAborted();
                 });
-            }),
+            })
         );
 }, "in the abort event handler for a transaction aborted due to an unhandled " + "request error");
 
@@ -461,38 +471,38 @@ promise_test((t) => {
                                             request.transaction,
                                             null,
                                             "The open request's transaction should be reset after " +
-                                                "onabort microtasks",
+                                                "onabort microtasks"
                                         );
-                                        assert_throws(
+                                        assert_throws_dom(
                                             "InvalidStateError",
                                             () => {
                                                 database.createObjectStore(
-                                                    "books2",
+                                                    "books2"
                                                 );
                                             },
                                             "createObjectStore exception should reflect that the " +
-                                                "transaction is no longer running",
+                                                "transaction is no longer running"
                                         );
-                                        assert_throws(
+                                        assert_throws_dom(
                                             "InvalidStateError",
                                             () => {
                                                 database.deleteObjectStore(
-                                                    "books",
+                                                    "books"
                                                 );
                                             },
                                             "deleteObjectStore exception should reflect that the " +
-                                                "transaction is no longer running",
+                                                "transaction is no longer running"
                                         );
                                         resolve();
-                                    }),
+                                    })
                                 );
                             }, 0);
                         },
-                        false,
+                        false
                     );
                     transaction.objectStore("books").add(BOOKS_RECORD_DATA[0]);
                     transaction._willBeAborted();
                 });
-            }),
+            })
         );
 }, "in a setTimeout(0) callback after the abort event is fired for a " + "transaction aborted due to an unhandled request failure");

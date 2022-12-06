@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 var db = createdb_for_multiple_tests(),
     // cache for ObjectStores
     objStore = null,
@@ -214,7 +233,7 @@ function invalid_key(desc, key) {
     // set the current test, and run it
     db.setTest(t).onupgradeneeded = function (e) {
         objStore = objStore || e.target.result.createObjectStore("store");
-        assert_throws("DataError", function () {
+        assert_throws_dom("DataError", function () {
             objStore.add("value", key);
         });
 
@@ -224,7 +243,7 @@ function invalid_key(desc, key) {
                 e.target.result.createObjectStore("store2", {
                     keyPath: ["x", "keypath"],
                 });
-            assert_throws("DataError", function () {
+            assert_throws_dom("DataError", function () {
                 objStore2.add({ x: "value", keypath: key });
             });
         }
@@ -275,7 +294,7 @@ invalid_key("[,1]", [, 1]);
 
 invalid_key(
     "document.getElements" + 'ByTagName("script")',
-    document.getElementsByTagName("script"),
+    document.getElementsByTagName("script")
 );
 
 //  dates
@@ -316,3 +335,5 @@ invalid_key("array indirectly contains self", recursive2);
 
 var recursive3 = [recursive];
 invalid_key("array member contains self", recursive3);
+
+invalid_key("proxy of an array", new Proxy([1, 2, 3], {}));

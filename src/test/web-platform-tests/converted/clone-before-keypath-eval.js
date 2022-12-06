@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -191,6 +201,15 @@ function keep_alive(tx, store_name) {
     return () => {
         assert_false(completed, "Transaction completed while kept alive");
         keepSpinning = false;
+    };
+}
+
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
     };
 }
 
@@ -228,23 +247,25 @@ indexeddb_test(
         db.createObjectStore("store", { keyPath: "id", autoIncrement: true });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const store = tx.objectStore("store");
         const obj = new ProbeObject();
         store.put(obj);
         assert_equals(
             obj.id_count,
             1,
-            "put() operation should access primary key property once",
+            "put() operation should access primary key property once"
         );
         assert_equals(
             obj.prop_count,
             1,
-            "put() operation should access other properties once",
+            "put() operation should access other properties once"
         );
         t.done();
     },
-    "Key generator and key path validity check operates on a clone",
+    "Key generator and key path validity check operates on a clone"
 );
 
 indexeddb_test(
@@ -255,29 +276,31 @@ indexeddb_test(
         });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const store = tx.objectStore("store");
         const obj = new ProbeObject();
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             () => {
                 store.put(obj);
             },
-            "put() should throw if primary key cannot be injected",
+            "put() should throw if primary key cannot be injected"
         );
         assert_equals(
             obj.invalid_id_count,
             1,
-            "put() operation should access primary key property once",
+            "put() operation should access primary key property once"
         );
         assert_equals(
             obj.prop_count,
             1,
-            "put() operation should access other properties once",
+            "put() operation should access other properties once"
         );
         t.done();
     },
-    "Failing key path validity check operates on a clone",
+    "Failing key path validity check operates on a clone"
 );
 
 indexeddb_test(
@@ -286,23 +309,25 @@ indexeddb_test(
         store.createIndex("index", "prop");
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const store = tx.objectStore("store");
         const obj = new ProbeObject();
         store.put(obj, "key");
         assert_equals(
             obj.prop_count,
             1,
-            "put() should access index key property once",
+            "put() should access index key property once"
         );
         assert_equals(
             obj.id_count,
             1,
-            "put() operation should access other properties once",
+            "put() operation should access other properties once"
         );
         t.done();
     },
-    "Index key path evaluations operate on a clone",
+    "Index key path evaluations operate on a clone"
 );
 
 indexeddb_test(
@@ -311,23 +336,25 @@ indexeddb_test(
         store.createIndex("index", "prop");
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const store = tx.objectStore("store");
         const obj = new ProbeObject();
         store.put(obj);
         assert_equals(
             obj.id_count,
             1,
-            "put() should access primary key property once",
+            "put() should access primary key property once"
         );
         assert_equals(
             obj.prop_count,
             1,
-            "put() should access index key property once",
+            "put() should access index key property once"
         );
         t.done();
     },
-    "Store and index key path evaluations operate on the same clone",
+    "Store and index key path evaluations operate on the same clone"
 );
 
 indexeddb_test(
@@ -336,7 +363,9 @@ indexeddb_test(
         store.createIndex("index", "prop");
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const store = tx.objectStore("store");
         store.put(new ProbeObject());
 
@@ -348,16 +377,16 @@ indexeddb_test(
             assert_equals(
                 obj.id_count,
                 1,
-                "put() should access primary key property once",
+                "put() should access primary key property once"
             );
             assert_equals(
                 obj.prop_count,
                 1,
-                "put() should access index key property once",
+                "put() should access index key property once"
             );
 
             t.done();
         });
     },
-    "Cursor update checks and keypath evaluations operate on a clone",
+    "Cursor update checks and keypath evaluations operate on a clone"
 );

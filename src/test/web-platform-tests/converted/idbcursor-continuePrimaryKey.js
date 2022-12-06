@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 ("use strict");
 
 indexeddb_test(
@@ -220,7 +239,7 @@ indexeddb_test(
 
         const request = index.openCursor();
         request.onerror = t.unreached_func(
-            "IDBIndex.openCursor should not fail",
+            "IDBIndex.openCursor should not fail"
         );
         request.onsuccess = t.step_func(() => {
             const cursor = request.result;
@@ -229,13 +248,13 @@ indexeddb_test(
                 assert_equals(
                     cursor.key,
                     expectedEntry.key,
-                    "The index entry keys should reflect the object store contents",
+                    "The index entry keys should reflect the object store contents"
                 );
                 assert_equals(
                     cursor.primaryKey,
                     expectedEntry.primaryKey,
                     "The index entry primary keys should reflect the object store " +
-                        "contents",
+                        "contents"
                 );
                 cursor.continue();
             } else {
@@ -243,7 +262,7 @@ indexeddb_test(
                     cursor,
                     null,
                     "The index should not have entries that do not reflect the " +
-                        "object store contents",
+                        "object store contents"
                 );
             }
         });
@@ -363,7 +382,9 @@ indexeddb_test(
 
             const testCase = testCases.shift();
 
-            const txn = db.transaction("store");
+            const txn = db.transaction("store", "readonly", {
+                durability: "relaxed",
+            });
             txn.oncomplete = t.step_func(verifyContinueCalls);
 
             const request = txn
@@ -372,7 +393,7 @@ indexeddb_test(
                 .openCursor();
             let calledContinue = false;
             request.onerror = t.unreached_func(
-                "IDBIndex.openCursor should not fail",
+                "IDBIndex.openCursor should not fail"
             );
             request.onsuccess = t.step_func(() => {
                 const cursor = request.result;
@@ -381,12 +402,12 @@ indexeddb_test(
                         assert_equals(
                             cursor.key,
                             testCase.result.key,
-                            `${testCase.call.toString()} - result key`,
+                            `${testCase.call.toString()} - result key`
                         );
                         assert_equals(
                             cursor.primaryKey,
                             testCase.result.primaryKey,
-                            `${testCase.call.toString()} - result primary key`,
+                            `${testCase.call.toString()} - result primary key`
                         );
                     } else {
                         assert_equals(cursor, null);
@@ -394,12 +415,12 @@ indexeddb_test(
                 } else {
                     calledContinue = true;
                     if ("exception" in testCase) {
-                        assert_throws(
+                        assert_throws_dom(
                             testCase.exception,
                             () => {
                                 testCase.call(cursor);
                             },
-                            testCase.call.toString(),
+                            testCase.call.toString()
                         );
                     } else {
                         testCase.call(cursor);
@@ -408,5 +429,5 @@ indexeddb_test(
             });
         };
         verifyContinueCalls();
-    },
+    }
 );

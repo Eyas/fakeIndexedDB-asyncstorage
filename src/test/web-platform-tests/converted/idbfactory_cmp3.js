@@ -8,7 +8,7 @@ test(function () {
     assert_equals(
         indexedDB.cmp(new Uint8Array([0]), "0"),
         1,
-        "Binary > String",
+        "Binary > String"
     );
 }, "Binary v.s. String");
 

@@ -1,4 +1,4 @@
-import "../wpt-env.js";
+import "../../wpt-env.js";
 
 /* Delete created databases
  *
@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,19 +204,29 @@ function keep_alive(tx, store_name) {
     };
 }
 
-var db,
-    t = async_test();
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
 
-var open_rq = createdb(t);
-open_rq.onupgradeneeded = function (e) {
-    db = e.target.result;
-    var rq = db.createObjectStore("store", { keyPath: "key" }).get(1);
-    rq.onsuccess = t.step_func(function (e) {
-        assert_equals(e.target.results, undefined);
-        step_timeout(function () {
-            t.done();
-        }, 10);
-    });
-};
+let saw;
+indexeddb_test(
+    (t, db) => {
+        saw = expect(t, ["delete1", "delete2"]);
+        let r = indexedDB.deleteDatabase(db.name);
+        r.onerror = t.unreached_func("delete should succeed");
+        r.onsuccess = t.step_func((e) => saw("delete1"));
+    },
+    (t, db) => {
+        let r = indexedDB.deleteDatabase(db.name);
+        r.onerror = t.unreached_func("delete should succeed");
+        r.onsuccess = t.step_func((e) => saw("delete2"));
 
-open_rq.onsuccess = function () {};
+        db.close();
+    },
+    "Deletes are processed in order"
+);

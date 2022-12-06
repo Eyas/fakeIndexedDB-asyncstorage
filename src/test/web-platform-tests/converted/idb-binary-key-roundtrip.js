@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 const sample = [0x44, 0x33, 0x22, 0x11, 0xff, 0xee, 0xdd, 0xcc];
 const buffer = new Uint8Array(sample).buffer;
 
@@ -205,13 +224,13 @@ function assert_buffer_equals(a, b, message) {
     assert_array_equals(
         Array.from(new Uint8Array(a)),
         Array.from(new Uint8Array(b)),
-        message,
+        message
     );
 }
 
 // Verifies that a JavaScript value round-trips through IndexedDB as a key.
 function check_key_roundtrip_and_done(t, db, key, key_buffer) {
-    const tx = db.transaction("store", "readwrite");
+    const tx = db.transaction("store", "readwrite", { durability: "relaxed" });
     const store = tx.objectStore("store");
 
     // Verify put with key
@@ -225,7 +244,7 @@ function check_key_roundtrip_and_done(t, db, key, key_buffer) {
         assert_equals(
             get_request.result,
             "value",
-            "get should retrieve the value given to put",
+            "get should retrieve the value given to put"
         );
 
         // Verify iteration returning key
@@ -235,23 +254,23 @@ function check_key_roundtrip_and_done(t, db, key, key_buffer) {
             assert_not_equals(
                 cursor_request.result,
                 null,
-                "cursor should be present",
+                "cursor should be present"
             );
             const retrieved_key = cursor_request.result.key;
             assert_true(
                 retrieved_key instanceof ArrayBuffer,
-                "IndexedDB binary keys should be returned in ArrayBuffer instances",
+                "IndexedDB binary keys should be returned in ArrayBuffer instances"
             );
             assert_key_equals(
                 retrieved_key,
                 key,
-                "The key returned by IndexedDB should equal the key given to put()",
+                "The key returned by IndexedDB should equal the key given to put()"
             );
             assert_buffer_equals(
                 retrieved_key,
                 key_buffer,
                 "The ArrayBuffer returned by IndexedDB should equal the buffer " +
-                    "backing the key given to put()",
+                    "backing the key given to put()"
             );
 
             t.done();
@@ -269,17 +288,17 @@ function view_type_test(type) {
             const key = new self[type](buffer);
             assert_key_valid(
                 key,
-                `${type} should be usable as an IndexedDB key`,
+                `${type} should be usable as an IndexedDB key`
             );
             assert_key_equals(
                 key,
                 buffer,
                 "Binary keys with the same data but different view types should be " +
-                    " equal",
+                    " equal"
             );
             check_key_roundtrip_and_done(t, db, key, buffer);
         },
-        `Binary keys can be supplied using the view type ${type}`,
+        `Binary keys can be supplied using the view type ${type}`
     );
 }
 
@@ -306,11 +325,11 @@ function value_test(value_description, value, value_buffer) {
         (t, db) => {
             assert_key_valid(
                 value,
-                value_description + " should be usable as an valid key",
+                value_description + " should be usable as an valid key"
             );
             check_key_roundtrip_and_done(t, db, value, value_buffer);
         },
-        `${value_description} can be used to supply a binary key`,
+        `${value_description} can be used to supply a binary key`
     );
 }
 
@@ -319,20 +338,20 @@ value_test("DataView", new DataView(buffer), buffer);
 value_test(
     "DataView with explicit offset",
     new DataView(buffer, 3),
-    new Uint8Array([0x11, 0xff, 0xee, 0xdd, 0xcc]).buffer,
+    new Uint8Array([0x11, 0xff, 0xee, 0xdd, 0xcc]).buffer
 );
 value_test(
     "DataView with explicit offset and length",
     new DataView(buffer, 3, 4),
-    new Uint8Array([0x11, 0xff, 0xee, 0xdd]).buffer,
+    new Uint8Array([0x11, 0xff, 0xee, 0xdd]).buffer
 );
 value_test(
     "Uint8Array with explicit offset",
     new Uint8Array(buffer, 3),
-    new Uint8Array([0x11, 0xff, 0xee, 0xdd, 0xcc]).buffer,
+    new Uint8Array([0x11, 0xff, 0xee, 0xdd, 0xcc]).buffer
 );
 value_test(
     "Uint8Array with explicit offset and length",
     new Uint8Array(buffer, 3, 4),
-    new Uint8Array([0x11, 0xff, 0xee, 0xdd]).buffer,
+    new Uint8Array([0x11, 0xff, 0xee, 0xdd]).buffer
 );

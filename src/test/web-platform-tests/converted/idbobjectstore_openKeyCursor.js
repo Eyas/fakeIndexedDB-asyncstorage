@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 function store_test(func, name) {
     indexeddb_test(
         function (t, db, tx) {
@@ -203,11 +222,13 @@ function store_test(func, name) {
             }
         },
         function (t, db) {
-            var tx = db.transaction("store");
+            var tx = db.transaction("store", "readonly", {
+                durability: "relaxed",
+            });
             var store = tx.objectStore("store");
             func(t, db, tx, store);
         },
-        name,
+        name
     );
 }
 
@@ -296,47 +317,47 @@ store_test(function (t, db, tx, store) {
 }, "IDBObjectStore.openKeyCursor() - reverse iteration with range");
 
 store_test(function (t, db, tx, store) {
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             store.openKeyCursor(NaN);
         },
-        "openKeyCursor should throw on invalid number key",
+        "openKeyCursor should throw on invalid number key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             store.openKeyCursor(new Date(NaN));
         },
-        "openKeyCursor should throw on invalid date key",
+        "openKeyCursor should throw on invalid date key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             var cycle = [];
             cycle.push(cycle);
             store.openKeyCursor(cycle);
         },
-        "openKeyCursor should throw on invalid array key",
+        "openKeyCursor should throw on invalid array key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             store.openKeyCursor({});
         },
-        "openKeyCursor should throw on invalid key type",
+        "openKeyCursor should throw on invalid key type"
     );
     setTimeout(
         t.step_func(function () {
-            assert_throws(
+            assert_throws_dom(
                 "TransactionInactiveError",
                 function () {
                     store.openKeyCursor();
                 },
-                "openKeyCursor should throw if transaction is inactive",
+                "openKeyCursor should throw if transaction is inactive"
             );
             t.done();
         }),
-        0,
+        0
     );
 }, "IDBObjectStore.openKeyCursor() - invalid inputs");

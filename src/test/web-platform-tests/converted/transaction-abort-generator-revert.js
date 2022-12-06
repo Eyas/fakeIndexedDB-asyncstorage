@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -409,7 +419,7 @@ promise_test((testCase) => {
                         author: "Barney",
                     });
                     request2.onerror = testCase.unreached_func(
-                        "IDBObjectStore.put() should not receive an error request",
+                        "IDBObjectStore.put() should not receive an error request"
                     );
                     request2.onsuccess = testCase.step_func((event) => {
                         assert_equals(
@@ -417,7 +427,7 @@ promise_test((testCase) => {
                             345679,
                             "The key generator's current number should be set by " +
                                 "the last put operation in the database creation " +
-                                "transaction",
+                                "transaction"
                         );
 
                         request.onerror = (event) => {
@@ -428,8 +438,8 @@ promise_test((testCase) => {
                             reject(
                                 new Error(
                                     "indexedDB.open should not succeed after the " +
-                                        "versionchange transaction is aborted",
-                                ),
+                                        "versionchange transaction is aborted"
+                                )
                             );
 
                         transaction.abort();
@@ -440,8 +450,8 @@ promise_test((testCase) => {
                     reject(
                         new Error(
                             "indexedDB.open should not succeed without creating a " +
-                                "versionchange transaction",
-                        ),
+                                "versionchange transaction"
+                        )
                     );
             });
         })
@@ -457,7 +467,7 @@ promise_test((testCase) => {
                 store,
                 345679,
                 "The key generator's current number should be reverted after the " +
-                    "transaction modifying it is aborted",
+                    "transaction modifying it is aborted"
             ).then(() => database.close());
         });
 }, "The current number of a key generator is reverted when a versionchange " + "transaction aborts");
@@ -470,7 +480,7 @@ promise_test((testCase) => {
             return new Promise((resolve, reject) => {
                 const transaction = database.transaction(
                     ["books"],
-                    "readwrite",
+                    "readwrite"
                 );
                 const store = transaction.objectStore("books");
                 const request = store.put({
@@ -478,14 +488,14 @@ promise_test((testCase) => {
                     author: "Barney",
                 });
                 request.onerror = testCase.unreached_func(
-                    "IDBObjectStore.put() should not receive an error request",
+                    "IDBObjectStore.put() should not receive an error request"
                 );
                 request.onsuccess = testCase.step_func((event) => {
                     assert_equals(
                         event.target.result,
                         345679,
                         "The key generator's current number should be set by the " +
-                            "last put operation in the database creation transaction",
+                            "last put operation in the database creation transaction"
                     );
 
                     transaction.onabort = (event) => {
@@ -498,22 +508,22 @@ promise_test((testCase) => {
                     reject(
                         new Error(
                             "The aborted readwrite transaction should not receive an " +
-                                "abort event before IDBTransaction.abort() is called",
-                        ),
+                                "abort event before IDBTransaction.abort() is called"
+                        )
                     );
                 transaction.oncomplete = () =>
                     reject(
                         new Error(
                             "The aborted readwrite transaction should not receive a " +
-                                "completed event",
-                        ),
+                                "completed event"
+                        )
                     );
                 transaction.onerror = () =>
                     reject(
                         new Error(
                             "The aborted readwrite transaction should not receive an " +
-                                "error event",
-                        ),
+                                "error event"
+                        )
                     );
             }).then(() => database);
         })
@@ -526,7 +536,7 @@ promise_test((testCase) => {
                 store,
                 345679,
                 "The key generator's current number should be reverted after the " +
-                    "transaction modifying it is aborted",
+                    "transaction modifying it is aborted"
             ).then(() => database.close());
         });
 }, "The current number of a key generator is reverted when a readwrite " + "transaction aborts");

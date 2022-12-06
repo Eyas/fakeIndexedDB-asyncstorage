@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,10 +204,19 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 async_test(function (t) {
-    var open_rq = indexedDB.open(
-        "idbtransaction-" + document.location + t.name,
-    );
+    var dbname = "idbtransaction-" + document.location + t.name;
+    indexedDB.deleteDatabase(dbname);
+    var open_rq = indexedDB.open(dbname);
 
     open_rq.onblocked = t.unreached_func("open_rq.onblocked");
     open_rq.onerror = t.unreached_func("open_rq.onerror");
@@ -214,26 +233,26 @@ async_test(function (t) {
         assert_equals(
             e.target,
             open_rq,
-            "e.target is reusing the same IDBOpenDBRequest",
+            "e.target is reusing the same IDBOpenDBRequest"
         );
         assert_equals(
             e.target.transaction,
             open_rq.transaction,
-            "IDBOpenDBRequest.transaction",
+            "IDBOpenDBRequest.transaction"
         );
 
         assert_true(
             e.target.transaction instanceof IDBTransaction,
-            "transaction instanceof IDBTransaction",
+            "transaction instanceof IDBTransaction"
         );
         t.done();
     });
 }, document.title + " - request gotten by the handler");
 
 async_test(function (t) {
-    var open_rq = indexedDB.open(
-        "idbtransaction-" + document.location + t.name,
-    );
+    var dbname = "idbtransaction-" + document.location + t.name;
+    indexedDB.deleteDatabase(dbname);
+    var open_rq = indexedDB.open(dbname);
 
     assert_equals(open_rq.transaction, null, "IDBOpenDBRequest.transaction");
     assert_equals(open_rq.source, null, "IDBOpenDBRequest.source");
@@ -241,12 +260,12 @@ async_test(function (t) {
 
     assert_true(
         open_rq instanceof IDBOpenDBRequest,
-        "open_rq instanceof IDBOpenDBRequest",
+        "open_rq instanceof IDBOpenDBRequest"
     );
     assert_equals(
         open_rq + "",
         "[object IDBOpenDBRequest]",
-        "IDBOpenDBRequest (open_rq)",
+        "IDBOpenDBRequest (open_rq)"
     );
 
     open_rq.onblocked = t.unreached_func("open_rq.onblocked");

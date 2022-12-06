@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,12 +204,23 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db) => {
         db.createObjectStore("store");
     },
     (t, db) => {
-        const tx = db.transaction("store");
+        const tx = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
         const request = tx.objectStore("store").get(0);
         tx.abort();
         request.onsuccess = t.unreached_func("request should not succeed");
@@ -211,17 +232,17 @@ indexeddb_test(
             assert_equals(
                 request.readyState,
                 "done",
-                "Request's done flag should be set",
+                "Request's done flag should be set"
             );
             assert_equals(
                 request.result,
                 undefined,
-                "Request's result should be undefined",
+                "Request's result should be undefined"
             );
             assert_equals(
                 request.error.name,
                 "AbortError",
-                "Request's error should be AbortError",
+                "Request's error should be AbortError"
             );
 
             assert_equals(e.target, request, "event target should be request");
@@ -231,11 +252,11 @@ indexeddb_test(
 
             assert_true(
                 connection_saw_error,
-                "Event propagated through connection",
+                "Event propagated through connection"
             );
             assert_true(
                 transaction_saw_error,
-                "Event propagated through transaction",
+                "Event propagated through transaction"
             );
             t.done();
         });
@@ -249,13 +270,13 @@ indexeddb_test(
                 assert_equals(
                     e.target,
                     request,
-                    "event target should be request",
+                    "event target should be request"
                 );
                 assert_equals(e.type, "error", "Event type should be error");
                 assert_true(e.bubbles, "Event should bubble");
                 assert_true(e.cancelable, "Event should cancelable");
             }),
-            true,
+            true
         );
 
         tx.addEventListener(
@@ -265,7 +286,7 @@ indexeddb_test(
                 assert_equals(
                     e.target,
                     request,
-                    "event target should be request",
+                    "event target should be request"
                 );
                 assert_equals(e.type, "error", "Event type should be error");
                 assert_true(e.bubbles, "Event should bubble");
@@ -273,11 +294,11 @@ indexeddb_test(
 
                 assert_true(
                     connection_saw_error,
-                    "Event propagated through connection",
+                    "Event propagated through connection"
                 );
             }),
-            true,
+            true
         );
     },
-    "Properties of error events fired at requests when aborting a transaction",
+    "Properties of error events fired at requests when aborting a transaction"
 );

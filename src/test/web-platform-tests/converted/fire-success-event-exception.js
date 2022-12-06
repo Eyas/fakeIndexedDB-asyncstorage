@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 setup({ allow_uncaught_exception: true });
 
 function fire_success_event_test(func, description) {
@@ -202,13 +221,21 @@ function fire_success_event_test(func, description) {
             db.createObjectStore("s");
         },
         (t, db) => {
-            const tx = db.transaction("s");
+            const tx = db.transaction("s", "readonly", {
+                durability: "relaxed",
+            });
             tx.oncomplete = t.unreached_func("transaction should abort");
             const store = tx.objectStore("s");
             const request = store.get(0);
             func(t, db, tx, request);
+            tx.addEventListener(
+                "abort",
+                t.step_func_done(() => {
+                    assert_equals(tx.error.name, "AbortError");
+                })
+            );
         },
-        description,
+        description
     );
 }
 
@@ -216,19 +243,27 @@ fire_success_event_test((t, db, tx, request) => {
     request.onsuccess = () => {
         throw Error();
     };
-    tx.onabort = t.step_func_done(() => {
-        assert_equals(tx.error.name, "AbortError");
-    });
 }, "Exception in success event handler on request");
 
 fire_success_event_test((t, db, tx, request) => {
     request.addEventListener("success", () => {
         throw Error();
     });
-    tx.onabort = t.step_func_done(() => {
-        assert_equals(tx.error.name, "AbortError");
-    });
 }, "Exception in success event listener on request");
+
+fire_success_event_test((t, db, tx, request) => {
+    request.addEventListener("success", {
+        get handleEvent() {
+            throw new Error();
+        },
+    });
+}, 'Exception in success event listener ("handleEvent" lookup) on request');
+
+fire_success_event_test((t, db, tx, request) => {
+    request.addEventListener("success", {
+        handleEvent: null,
+    });
+}, 'Exception in success event listener (non-callable "handleEvent") on request');
 
 fire_success_event_test((t, db, tx, request) => {
     request.addEventListener("success", () => {
@@ -236,9 +271,6 @@ fire_success_event_test((t, db, tx, request) => {
     });
     request.addEventListener("success", () => {
         throw Error();
-    });
-    tx.onabort = t.step_func_done(() => {
-        assert_equals(tx.error.name, "AbortError");
     });
 }, "Exception in second success event listener on request");
 
@@ -253,12 +285,14 @@ fire_success_event_test((t, db, tx, request) => {
             second_listener_called = true;
             assert_true(
                 is_transaction_active(tx, "s"),
-                "Transaction should be active until dispatch completes",
+                "Transaction should be active until dispatch completes"
             );
-        }),
+        })
     );
-    tx.onabort = t.step_func_done(() => {
-        assert_true(second_listener_called);
-        assert_equals(tx.error.name, "AbortError");
-    });
+    tx.addEventListener(
+        "abort",
+        t.step_func(() => {
+            assert_true(second_listener_called);
+        })
+    );
 }, "Exception in first success event listener, tx active in second");

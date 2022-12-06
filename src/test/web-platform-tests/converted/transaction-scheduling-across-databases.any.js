@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,22 +204,103 @@ function keep_alive(tx, store_name) {
     };
 }
 
-var db;
-var open_rq = createdb(async_test());
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
 
-open_rq.onupgradeneeded = function (e) {
-    db = e.target.result;
-    var os = db.createObjectStore("store");
+// META: script=resources/support.js
 
-    for (var i = 0; i < 10; i++) os.add("data" + i, i);
-};
+indexeddb_test(
+    (t, db) => {
+        const store = db.createObjectStore("store");
+    },
 
-open_rq.onsuccess = function (e) {
-    db
-        .transaction("store")
-        .objectStore("store")
-        .get(IDBKeyRange.bound(3, 6)).onsuccess = this.step_func(function (e) {
-        assert_equals(e.target.result, "data3", "get(3-6)");
-        this.done();
-    });
-};
+    (t, db1) => {
+        // Open a second database.
+        const db2name = db1.name + "-2";
+        const delete_request = indexedDB.deleteDatabase(db2name);
+        delete_request.onerror = t.unreached_func(
+            "deleteDatabase() should succeed"
+        );
+        const open_request = indexedDB.open(db2name, 1);
+        open_request.onerror = t.unreached_func("open() should succeed");
+        open_request.onupgradeneeded = t.step_func(() => {
+            const db2 = open_request.result;
+            const store = db2.createObjectStore("store");
+        });
+        open_request.onsuccess = t.step_func(() => {
+            const db2 = open_request.result;
+            t.add_cleanup(() => {
+                db2.close();
+                indexedDB.deleteDatabase(db2.name);
+            });
+
+            let transaction1PutSuccess = false;
+            let transaction2PutSuccess = false;
+
+            const onTransactionComplete = barrier_func(
+                2,
+                t.step_func_done(() => {
+                    assert_true(
+                        transaction1PutSuccess,
+                        "transaction1 should have executed at least one request"
+                    );
+                    assert_true(
+                        transaction2PutSuccess,
+                        "transaction1 should have executed at least one request"
+                    );
+                })
+            );
+
+            const transaction1 = db1.transaction("store", "readwrite", {
+                durability: "relaxed",
+            });
+            transaction1.onabort = t.unreached_func(
+                "transaction1 should complete"
+            );
+            transaction1.oncomplete = t.step_func(onTransactionComplete);
+
+            const transaction2 = db2.transaction("store", "readwrite", {
+                durability: "relaxed",
+            });
+            transaction2.onabort = t.unreached_func(
+                "transaction2 should complete"
+            );
+            transaction2.oncomplete = t.step_func(onTransactionComplete);
+
+            // Keep both transactions alive until each has reported at least one
+            // successful operation.
+
+            function doTransaction1Put() {
+                const request = transaction1.objectStore("store").put(0, 0);
+                request.onerror = t.unreached_func(
+                    "put request should succeed"
+                );
+                request.onsuccess = t.step_func(() => {
+                    transaction1PutSuccess = true;
+                    if (!transaction2PutSuccess) doTransaction1Put();
+                });
+            }
+
+            function doTransaction2Put() {
+                const request = transaction2.objectStore("store").put(0, 0);
+                request.onerror = t.unreached_func(
+                    "put request should succeed"
+                );
+                request.onsuccess = t.step_func(() => {
+                    transaction2PutSuccess = true;
+                    if (!transaction1PutSuccess) doTransaction2Put();
+                });
+            }
+
+            doTransaction1Put();
+            doTransaction2Put();
+        });
+    },
+    "Check that transactions in different databases can run in parallel."
+);

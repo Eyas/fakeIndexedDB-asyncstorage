@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 var db;
 var count_done = 0;
 var open_rq = createdb(async_test());
@@ -204,7 +223,7 @@ open_rq.onupgradeneeded = function (e) {
     db.createObjectStore("store");
     assert_true(
         db.objectStoreNames.contains("store"),
-        "objectStoreNames contains store",
+        "objectStoreNames contains store"
     );
 
     var store = e.target.transaction.objectStore("store");
@@ -220,7 +239,9 @@ open_rq.onupgradeneeded = function (e) {
     store.add("data2", 2);
 };
 open_rq.onsuccess = function (e) {
-    var store = db.transaction("store").objectStore("store");
+    var store = db
+        .transaction("store", "readonly", { durability: "relaxed" })
+        .objectStore("store");
     assert_equals(store.name, "store", "store.name");
     store.count().onsuccess = this.step_func(function (e) {
         assert_equals(e.target.result, 2, "count()");
@@ -233,7 +254,7 @@ open_rq.onsuccess = function (e) {
         var db2 = e.target.result;
         assert_true(
             db2.objectStoreNames.contains("store"),
-            "objectStoreNames contains store",
+            "objectStoreNames contains store"
         );
         var store = open_rq2.transaction.objectStore("store");
         assert_equals(store.name, "store", "store.name");

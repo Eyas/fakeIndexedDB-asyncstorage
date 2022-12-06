@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -430,7 +440,7 @@ function checkValue(testCase, value, descriptor) {
         assert_equals(
             descriptor,
             value,
-            "IndexedDB result should match put() argument",
+            "IndexedDB result should match put() argument"
         );
         return Promise.resolve();
     }
@@ -438,12 +448,12 @@ function checkValue(testCase, value, descriptor) {
     if (Array.isArray(descriptor)) {
         assert_true(
             Array.isArray(value),
-            "IndexedDB result type should match put() argument",
+            "IndexedDB result type should match put() argument"
         );
         assert_equals(
             descriptor.length,
             value.length,
-            "IndexedDB result array size should match put() argument",
+            "IndexedDB result array size should match put() argument"
         );
 
         const subChecks = [];
@@ -456,13 +466,13 @@ function checkValue(testCase, value, descriptor) {
         assert_array_equals(
             Object.getOwnPropertyNames(value).sort(),
             Object.getOwnPropertyNames(descriptor).sort(),
-            "IndexedDB result object properties should match put() argument",
+            "IndexedDB result object properties should match put() argument"
         );
         const subChecks = [];
         return Promise.all(
             Object.getOwnPropertyNames(descriptor).map((property) =>
-                checkValue(testCase, value[property], descriptor[property]),
-            ),
+                checkValue(testCase, value[property], descriptor[property])
+            )
         );
     }
 
@@ -471,12 +481,12 @@ function checkValue(testCase, value, descriptor) {
             assert_class_string(
                 value,
                 "Blob",
-                "IndexedDB result class should match put() argument",
+                "IndexedDB result class should match put() argument"
             );
             assert_equals(
                 descriptor.mimeType,
                 value.type,
-                "IndexedDB result Blob MIME type should match put() argument",
+                "IndexedDB result Blob MIME type should match put() argument"
             );
             assert_equals(descriptor.size, value.size, "incorrect Blob size");
             return new Promise((resolve, reject) => {
@@ -490,7 +500,7 @@ function checkValue(testCase, value, descriptor) {
                     assert_equals(
                         view.join(","),
                         largeValue(descriptor.size, descriptor.seed).join(","),
-                        "IndexedDB result Blob content should match put() argument",
+                        "IndexedDB result Blob content should match put() argument"
                     );
                     resolve();
                 });
@@ -501,12 +511,12 @@ function checkValue(testCase, value, descriptor) {
             assert_class_string(
                 value,
                 "Uint8Array",
-                "IndexedDB result type should match put() argument",
+                "IndexedDB result type should match put() argument"
             );
             assert_equals(
                 value.join(","),
                 largeValue(descriptor.size, descriptor.seed).join(","),
-                "IndexedDB result typed array content should match put() argument",
+                "IndexedDB result typed array content should match put() argument"
             );
             return Promise.resolve();
     }
@@ -534,7 +544,7 @@ function cloningTestInternal(label, valueDescriptors, options) {
         }).then((database) => {
             const transaction = database.transaction(
                 ["test-store"],
-                "readonly",
+                "readonly"
             );
             const store = transaction.objectStore("test-store");
             const subChecks = [];
@@ -552,7 +562,7 @@ function cloningTestInternal(label, valueDescriptors, options) {
                             assert_equals(
                                 resultIndex,
                                 requestIndex,
-                                "IDBRequest success events should be fired in request order",
+                                "IDBRequest success events should be fired in request order"
                             );
                             ++resultIndex;
 
@@ -561,7 +571,7 @@ function cloningTestInternal(label, valueDescriptors, options) {
                                 assert_equals(
                                     result.primaryKey,
                                     primaryKey,
-                                    "IndexedDB result should have auto-incremented primary key",
+                                    "IndexedDB result should have auto-incremented primary key"
                                 );
                                 delete result.primaryKey;
                             }
@@ -569,11 +579,11 @@ function cloningTestInternal(label, valueDescriptors, options) {
                                 checkValue(
                                     testCase,
                                     result,
-                                    valueDescriptors[requestIndex],
-                                ),
+                                    valueDescriptors[requestIndex]
+                                )
                             );
                         });
-                    }),
+                    })
                 );
             }
 
@@ -588,7 +598,7 @@ function cloningTestInternal(label, valueDescriptors, options) {
                         assert_equals(
                             resultIndex,
                             requestIndex,
-                            "IDBRequest success events should be fired in request order",
+                            "IDBRequest success events should be fired in request order"
                         );
                         ++resultIndex;
                         const result = request.result;
@@ -598,14 +608,14 @@ function cloningTestInternal(label, valueDescriptors, options) {
                                 assert_equals(
                                     result[i].primaryKey,
                                     primaryKey,
-                                    "IndexedDB result should have auto-incremented primary key",
+                                    "IndexedDB result should have auto-incremented primary key"
                                 );
                                 delete result[i].primaryKey;
                             }
                         }
                         resolve(checkValue(testCase, result, valueDescriptors));
                     });
-                }),
+                })
             );
 
             return Promise.all(subChecks);
@@ -735,5 +745,5 @@ cloningTestWithKeyGenerator(
                 seed: 20,
             },
         ],
-    ],
+    ]
 );

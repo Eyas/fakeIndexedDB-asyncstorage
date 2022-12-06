@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -429,13 +439,13 @@ const buildStores = (database, databaseName, useUniqueKeys) => {
 // Creates two databases with identical structures.
 const buildDatabases = (testCase, useUniqueKeys) => {
     return createNamedDatabase(testCase, "x", (database) =>
-        buildStores(database, "x", useUniqueKeys),
+        buildStores(database, "x", useUniqueKeys)
     )
         .then((database) => database.close())
         .then(() =>
             createNamedDatabase(testCase, "y", (database) =>
-                buildStores(database, "y", useUniqueKeys),
-            ),
+                buildStores(database, "y", useUniqueKeys)
+            )
         )
         .then((database) => database.close());
 };
@@ -464,7 +474,7 @@ const checkDatabaseContent = (
     testCase,
     database,
     databaseName,
-    usedUniqueKeys,
+    usedUniqueKeys
 ) => {
     const promises = [];
     const transaction = database.transaction(["x", "y"], "readonly");
@@ -484,7 +494,7 @@ const checkDatabaseContent = (
                         `${databaseName}-${storeName}-y-x:3`,
                         `${databaseName}-${storeName}-y-y:4`,
                     ],
-                    "The results should include all records put into the store",
+                    "The results should include all records put into the store"
                 );
 
                 let expectedKeys = usedUniqueKeys
@@ -495,13 +505,13 @@ const checkDatabaseContent = (
                         .map((result) => `${result.xKey}:${result.yKey}`)
                         .sort(),
                     expectedKeys,
-                    "The results should include all the index keys put in the store",
+                    "The results should include all the index keys put in the store"
                 );
 
                 assert_array_equals(
                     results.map((result) => result[`${indexName}Key`]),
                     results.map((result) => result[`${indexName}Key`]).sort(),
-                    "The results should be sorted by the index key",
+                    "The results should be sorted by the index key"
                 );
             });
             promises.push(promise);
@@ -515,12 +525,12 @@ promise_test((testCase) => {
     return buildDatabases(testCase, false)
         .then(() => openNamedDatabase(testCase, "x", 1))
         .then((database) =>
-            checkDatabaseContent(testCase, database, "x", false),
+            checkDatabaseContent(testCase, database, "x", false)
         )
         .then((database) => database.close())
         .then(() => openNamedDatabase(testCase, "y", 1))
         .then((database) =>
-            checkDatabaseContent(testCase, database, "y", false),
+            checkDatabaseContent(testCase, database, "y", false)
         )
         .then((database) => database.close());
 }, "Non-unique index keys");

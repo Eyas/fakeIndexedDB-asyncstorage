@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,18 +204,30 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 var db,
-    t = async_test();
+    t = async_test(),
+    dbname = location + "-" + t.name;
 
 t.step(function () {
-    var openrq = indexedDB.open("db", 3);
+    indexedDB.deleteDatabase(dbname);
+
+    var openrq = indexedDB.open(dbname, 3);
 
     openrq.onupgradeneeded = t.step_func(function (e) {
         assert_equals(e.oldVersion, 0, "old version (upgradeneeded)");
         assert_equals(e.newVersion, 3, "new version (upgradeneeded)");
         assert_true(
             e instanceof IDBVersionChangeEvent,
-            "upgradeneeded instanceof IDBVersionChangeEvent",
+            "upgradeneeded instanceof IDBVersionChangeEvent"
         );
     });
 
@@ -217,7 +239,7 @@ t.step(function () {
             assert_equals(e.newVersion, null, "new version (versionchange)");
             assert_true(
                 e instanceof IDBVersionChangeEvent,
-                "versionchange instanceof IDBVersionChangeEvent",
+                "versionchange instanceof IDBVersionChangeEvent"
             );
             db.close();
         });
@@ -235,19 +257,19 @@ t.step(function () {
 });
 
 function deleteDB(e) {
-    var deleterq = indexedDB.deleteDatabase("db");
+    var deleterq = indexedDB.deleteDatabase(dbname);
 
     deleterq.onsuccess = t.step_func(function (e) {
         assert_equals(
             e.result,
             undefined,
-            "result (delete.success for nonexistent db)",
+            "result (delete.success for nonexistent db)"
         );
         assert_equals(e.oldVersion, 3, "old version (delete.success)");
         assert_equals(e.newVersion, null, "new version (delete.success)");
         assert_true(
             e instanceof IDBVersionChangeEvent,
-            "delete.success instanceof IDBVersionChangeEvent",
+            "delete.success instanceof IDBVersionChangeEvent"
         );
 
         setTimeout(deleteNonExistentDB, 10);
@@ -265,21 +287,21 @@ function deleteNonExistentDB(e) {
         assert_equals(
             e.result,
             undefined,
-            "result (delete.success for nonexistent db)",
+            "result (delete.success for nonexistent db)"
         );
         assert_equals(
             e.oldVersion,
             0,
-            "old version (delete.success for nonexistent db)",
+            "old version (delete.success for nonexistent db)"
         );
         assert_equals(
             e.newVersion,
             null,
-            "new version (delete.success for nonexistent db)",
+            "new version (delete.success for nonexistent db)"
         );
         assert_true(
             e instanceof IDBVersionChangeEvent,
-            "delete.success instanceof IDBVersionChangeEvent",
+            "delete.success instanceof IDBVersionChangeEvent"
         );
 
         setTimeout(function () {

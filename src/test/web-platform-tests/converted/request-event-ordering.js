@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -422,7 +432,7 @@ function openCursors(testCase, index, operations, onerror, onsuccess) {
         switch (opcode) {
             case "continue":
                 request = index.openCursor(
-                    IDBKeyRange.lowerBound(`k${primaryKey - 1}`),
+                    IDBKeyRange.lowerBound(`k${primaryKey - 1}`)
                 );
                 break;
             case "continue-empty":
@@ -493,7 +503,7 @@ function doOperation(testCase, store, index, operation, requestId, results) {
                 });
                 request.onsuccess = testCase.step_func(() => {
                     reject(
-                        new Error("put with duplicate primary key succeded"),
+                        new Error("put with duplicate primary key succeded")
                     );
                 });
                 break;
@@ -514,7 +524,7 @@ function doOperation(testCase, store, index, operation, requestId, results) {
                 break;
             case "open": // Tests returning a cursor, key, primary key, and value.
                 request = index.openCursor(
-                    IDBKeyRange.lowerBound(`k${primaryKey}`),
+                    IDBKeyRange.lowerBound(`k${primaryKey}`)
                 );
                 request.onsuccess = testCase.step_func(() => {
                     const result = request.result;
@@ -538,7 +548,7 @@ function doOperation(testCase, store, index, operation, requestId, results) {
                 break;
             case "open-empty": // Tests returning a null cursor.
                 request = index.openCursor(
-                    IDBKeyRange.lowerBound(`k${primaryKey}`),
+                    IDBKeyRange.lowerBound(`k${primaryKey}`)
                 );
                 request.onsuccess = testCase.step_func(() => {
                     const result = request.result;
@@ -582,7 +592,7 @@ function checkOperationResult(operation, result, requestId) {
     assert_equals(
         requestIndex,
         requestId,
-        "result event order should match request order",
+        "result event order should match request order"
     );
     switch (opcode) {
         case "put":
@@ -591,31 +601,31 @@ function checkOperationResult(operation, result, requestId) {
             assert_equals(
                 result[1],
                 primaryKey,
-                `${opcode} result should be the new object's primary key`,
+                `${opcode} result should be the new object's primary key`
             );
             break;
         case "get":
             assert_equals(
                 result[1].id,
                 primaryKey,
-                "get result should match put value (primary key)",
+                "get result should match put value (primary key)"
             );
             assert_equals(
                 result[1].key,
                 `k${primaryKey}`,
-                "get result should match put value (key)",
+                "get result should match put value (key)"
             );
             assert_equals(
                 result[1].value.join(","),
                 expectedValue.join(","),
-                "get result should match put value (nested value)",
+                "get result should match put value (nested value)"
             );
             break;
         case "getall":
             assert_equals(
                 result[1].length,
                 primaryKey,
-                "getAll should return all the objects in the store",
+                "getAll should return all the objects in the store"
             );
             for (let i = 0; i < primaryKey; ++i) {
                 const object = result[1][i];
@@ -624,12 +634,12 @@ function checkOperationResult(operation, result, requestId) {
                     i + 1,
                     `getAll result ${
                         i + 1
-                    } should match put value (primary key)`,
+                    } should match put value (primary key)`
                 );
                 assert_equals(
                     object.key,
                     `k${i + 1}`,
-                    `get result ${i + 1} should match put value (key)`,
+                    `get result ${i + 1} should match put value (key)`
                 );
 
                 const expectedValue =
@@ -639,7 +649,7 @@ function checkOperationResult(operation, result, requestId) {
                 assert_equals(
                     object.value.join(","),
                     object.value.join(","),
-                    `get result ${i + 1} should match put value (nested value)`,
+                    `get result ${i + 1} should match put value (nested value)`
                 );
             }
             break;
@@ -647,14 +657,14 @@ function checkOperationResult(operation, result, requestId) {
             assert_equals(
                 result[1],
                 undefined,
-                "get-empty result should be undefined",
+                "get-empty result should be undefined"
             );
             break;
         case "error":
             assert_equals(
                 result[1].name,
                 "ConstraintError",
-                "incorrect error from put with duplicate primary key",
+                "incorrect error from put with duplicate primary key"
             );
             break;
         case "continue":
@@ -662,27 +672,27 @@ function checkOperationResult(operation, result, requestId) {
             assert_equals(
                 result[1],
                 `k${primaryKey}`,
-                `${opcode} key should match the key in the put value`,
+                `${opcode} key should match the key in the put value`
             );
             assert_equals(
                 result[2],
                 primaryKey,
-                `${opcode} primary key should match the put value's primary key`,
+                `${opcode} primary key should match the put value's primary key`
             );
             assert_equals(
                 result[3].id,
                 primaryKey,
-                `${opcode} value should match put value (primary key)`,
+                `${opcode} value should match put value (primary key)`
             );
             assert_equals(
                 result[3].key,
                 `k${primaryKey}`,
-                `${opcode} value should match put value (key)`,
+                `${opcode} value should match put value (key)`
             );
             assert_equals(
                 result[3].value.join(","),
                 expectedValue.join(","),
-                `${opcode} value should match put value (nested value)`,
+                `${opcode} value should match put value (nested value)`
             );
             break;
         case "continue-empty":
@@ -705,7 +715,7 @@ function eventsTest(label, operations) {
             .then((database) => {
                 const transaction = database.transaction(
                     ["test-store"],
-                    "readwrite",
+                    "readwrite"
                 );
                 const store = transaction.objectStore("test-store");
                 const index = store.index("test-index");
@@ -720,7 +730,7 @@ function eventsTest(label, operations) {
                                 index,
                                 operations[i],
                                 i,
-                                results,
+                                results
                             );
                             promises.push(promise);
                         }
@@ -732,7 +742,7 @@ function eventsTest(label, operations) {
                 assert_equals(
                     results.length,
                     operations.length,
-                    "Promise.all should resolve after all sub-promises resolve",
+                    "Promise.all should resolve after all sub-promises resolve"
                 );
                 for (let i = 0; i < operations.length; ++i)
                     checkOperationResult(operations[i], results[i], i);

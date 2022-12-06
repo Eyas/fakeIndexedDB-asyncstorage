@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,17 +204,28 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db, tx) => {
         db.createObjectStore("store");
     },
     (t, db) => {
-        const tx = db.transaction("store");
+        const tx = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
         const release_tx = keep_alive(tx, "store");
 
         assert_true(
             is_transaction_active(tx, "store"),
-            "Transaction should be active after creation",
+            "Transaction should be active after creation"
         );
 
         const request = tx.objectStore("store").get(0);
@@ -212,7 +233,7 @@ indexeddb_test(
         request.onsuccess = () => {
             assert_true(
                 is_transaction_active(tx, "store"),
-                "Transaction should be active during success handler",
+                "Transaction should be active during success handler"
             );
 
             let saw_handler_promise = false;
@@ -221,9 +242,9 @@ indexeddb_test(
                     saw_handler_promise = true;
                     assert_true(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be active in handler's microtasks",
+                        "Transaction should be active in handler's microtasks"
                     );
-                }),
+                })
             );
 
             setTimeout(
@@ -231,16 +252,16 @@ indexeddb_test(
                     assert_true(saw_handler_promise);
                     assert_false(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be inactive in next task",
+                        "Transaction should be inactive in next task"
                     );
                     release_tx();
                     t.done();
                 }),
-                0,
+                0
             );
         };
     },
-    "Transactions are active during success handlers",
+    "Transactions are active during success handlers"
 );
 
 indexeddb_test(
@@ -248,11 +269,13 @@ indexeddb_test(
         db.createObjectStore("store");
     },
     (t, db) => {
-        const tx = db.transaction("store");
+        const tx = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
         const release_tx = keep_alive(tx, "store");
         assert_true(
             is_transaction_active(tx, "store"),
-            "Transaction should be active after creation",
+            "Transaction should be active after creation"
         );
 
         const request = tx.objectStore("store").get(0);
@@ -260,7 +283,7 @@ indexeddb_test(
         request.addEventListener("success", () => {
             assert_true(
                 is_transaction_active(tx, "store"),
-                "Transaction should be active during success listener",
+                "Transaction should be active during success listener"
             );
 
             let saw_listener_promise = false;
@@ -269,9 +292,9 @@ indexeddb_test(
                     saw_listener_promise = true;
                     assert_true(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be active in listener's microtasks",
+                        "Transaction should be active in listener's microtasks"
                     );
-                }),
+                })
             );
 
             setTimeout(
@@ -279,16 +302,16 @@ indexeddb_test(
                     assert_true(saw_listener_promise);
                     assert_false(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be inactive in next task",
+                        "Transaction should be inactive in next task"
                     );
                     release_tx();
                     t.done();
                 }),
-                0,
+                0
             );
         });
     },
-    "Transactions are active during success listeners",
+    "Transactions are active during success listeners"
 );
 
 indexeddb_test(
@@ -296,11 +319,13 @@ indexeddb_test(
         db.createObjectStore("store");
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const release_tx = keep_alive(tx, "store");
         assert_true(
             is_transaction_active(tx, "store"),
-            "Transaction should be active after creation",
+            "Transaction should be active after creation"
         );
 
         tx.objectStore("store").put(0, 0);
@@ -311,7 +336,7 @@ indexeddb_test(
 
             assert_true(
                 is_transaction_active(tx, "store"),
-                "Transaction should be active during error handler",
+                "Transaction should be active during error handler"
             );
 
             let saw_handler_promise = false;
@@ -320,9 +345,9 @@ indexeddb_test(
                     saw_handler_promise = true;
                     assert_true(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be active in handler's microtasks",
+                        "Transaction should be active in handler's microtasks"
                     );
-                }),
+                })
             );
 
             setTimeout(
@@ -330,16 +355,16 @@ indexeddb_test(
                     assert_true(saw_handler_promise);
                     assert_false(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be inactive in next task",
+                        "Transaction should be inactive in next task"
                     );
                     release_tx();
                     t.done();
                 }),
-                0,
+                0
             );
         };
     },
-    "Transactions are active during error handlers",
+    "Transactions are active during error handlers"
 );
 
 indexeddb_test(
@@ -347,11 +372,13 @@ indexeddb_test(
         db.createObjectStore("store");
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const release_tx = keep_alive(tx, "store");
         assert_true(
             is_transaction_active(tx, "store"),
-            "Transaction should be active after creation",
+            "Transaction should be active after creation"
         );
 
         tx.objectStore("store").put(0, 0);
@@ -362,7 +389,7 @@ indexeddb_test(
 
             assert_true(
                 is_transaction_active(tx, "store"),
-                "Transaction should be active during error listener",
+                "Transaction should be active during error listener"
             );
 
             let saw_listener_promise = false;
@@ -371,9 +398,9 @@ indexeddb_test(
                     saw_listener_promise = true;
                     assert_true(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be active in listener's microtasks",
+                        "Transaction should be active in listener's microtasks"
                     );
-                }),
+                })
             );
 
             setTimeout(
@@ -381,14 +408,14 @@ indexeddb_test(
                     assert_true(saw_listener_promise);
                     assert_false(
                         is_transaction_active(tx, "store"),
-                        "Transaction should be inactive in next task",
+                        "Transaction should be inactive in next task"
                     );
                     release_tx();
                     t.done();
                 }),
-                0,
+                0
             );
         });
     },
-    "Transactions are active during error listeners",
+    "Transactions are active during error listeners"
 );

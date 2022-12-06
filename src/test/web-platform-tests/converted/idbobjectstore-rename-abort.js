@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -411,28 +421,28 @@ promise_test((testCase) => {
                     bookStore.name,
                     "books",
                     "IDBObjectStore.name should not reflect the rename any more " +
-                        "immediately after transaction.abort() returns",
+                        "immediately after transaction.abort() returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books"],
                     "IDBDatabase.objectStoreNames should not reflect the rename " +
-                        "any more immediately after transaction.abort() returns",
+                        "any more immediately after transaction.abort() returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["books"],
                     "IDBTransaction.objectStoreNames should not reflect the " +
-                        "rename any more immediately after transaction.abort() returns",
+                        "rename any more immediately after transaction.abort() returns"
                 );
-            }),
+            })
         )
         .then((event) => {
             assert_equals(
                 bookStore.name,
                 "books",
                 "IDBObjectStore.name should not reflect the rename any more " +
-                    "after the versionchange transaction is aborted",
+                    "after the versionchange transaction is aborted"
             );
             const request = indexedDB.open(dbName, 1);
             return promiseForRequest(testCase, request);
@@ -442,16 +452,18 @@ promise_test((testCase) => {
                 database.objectStoreNames,
                 ["books"],
                 "IDBDatabase.objectStoreNames should not reflect the rename " +
-                    "after the versionchange transaction is aborted",
+                    "after the versionchange transaction is aborted"
             );
 
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             bookStore2 = transaction.objectStore("books");
             return checkStoreContents(
                 testCase,
                 bookStore2,
                 "Aborting an object store rename transaction should not change " +
-                    "the store's records",
+                    "the store's records"
             ).then(() => database.close());
         })
         .then(() => {
@@ -459,13 +471,13 @@ promise_test((testCase) => {
                 bookStore.name,
                 "books",
                 "IDBObjectStore used in aborted rename transaction should not " +
-                    "reflect the rename after the transaction is aborted",
+                    "reflect the rename after the transaction is aborted"
             );
             assert_equals(
                 bookStore2.name,
                 "books",
                 "IDBObjectStore obtained after an aborted rename transaction " +
-                    "should not reflect the rename",
+                    "should not reflect the rename"
             );
         });
 }, "IndexedDB object store rename in aborted transaction");
@@ -489,44 +501,44 @@ promise_test((testCase) => {
                     notBookStore.name,
                     "not_books_renamed_again",
                     "IDBObjectStore.name should reflect the last rename " +
-                        "immediately after transaction.abort() returns",
+                        "immediately after transaction.abort() returns"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     [],
                     "IDBDatabase.objectStoreNames should not reflect the creation " +
                         "or the rename any more immediately after transaction.abort() " +
-                        "returns",
+                        "returns"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     [],
                     "IDBTransaction.objectStoreNames should not reflect the " +
                         "creation or the rename any more immediately after " +
-                        "transaction.abort() returns",
+                        "transaction.abort() returns"
                 );
                 assert_array_equals(
                     notBookStore.indexNames,
                     [],
                     "IDBObjectStore.indexNames for the newly created store " +
                         "should be empty immediately after transaction.abort() " +
-                        "returns",
+                        "returns"
                 );
-            }),
+            })
         )
         .then((event) => {
             assert_equals(
                 notBookStore.name,
                 "not_books_renamed_again",
                 "IDBObjectStore.name should reflect the last rename after the " +
-                    "versionchange transaction is aborted",
+                    "versionchange transaction is aborted"
             );
             assert_array_equals(
                 notBookStore.indexNames,
                 [],
                 "IDBObjectStore.indexNames for the newly created store " +
                     "should be empty after the versionchange transaction is aborted " +
-                    "returns",
+                    "returns"
             );
             const request = indexedDB.open(dbName, 1);
             return promiseForRequest(testCase, request);
@@ -536,7 +548,7 @@ promise_test((testCase) => {
                 database.objectStoreNames,
                 [],
                 "IDBDatabase.objectStoreNames should not reflect the creation or " +
-                    "the rename after the versionchange transaction is aborted",
+                    "the rename after the versionchange transaction is aborted"
             );
 
             database.close();

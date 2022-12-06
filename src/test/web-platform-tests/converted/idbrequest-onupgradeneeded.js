@@ -4,13 +4,13 @@ function upgradeneeded_test(
     upgrade_func,
     success_func,
     error_func,
-    description,
+    description
 ) {
     async_test(function (t) {
         var dbName = "db" + self.location.pathname + "-" + description;
         var delete_request = indexedDB.deleteDatabase(dbName);
         delete_request.onerror = t.unreached_func(
-            "deleteDatabase should not fail",
+            "deleteDatabase should not fail"
         );
         delete_request.onsuccess = t.step_func(function () {
             var open_request = indexedDB.open(dbName);
@@ -57,7 +57,7 @@ function upgradeneeded_test(
             order.push("Open Success");
         },
         null,
-        "indexedDB.delete called from upgradeneeded handler",
+        "indexedDB.delete called from upgradeneeded handler"
     );
 })();
 
@@ -90,7 +90,7 @@ function upgradeneeded_test(
             ]);
             order.push("Open Error");
         },
-        "Abort transaction before deleting database in upgradeneeded handler",
+        "Abort transaction before deleting database in upgradeneeded handler"
     );
 })();
 
@@ -123,7 +123,7 @@ function upgradeneeded_test(
             ]);
             order.push("Open Error");
         },
-        "Abort transaction after deleting database in upgradeneeded event handler",
+        "Abort transaction after deleting database in upgradeneeded event handler"
     );
 })();
 
@@ -136,7 +136,9 @@ function upgradeneeded_test(
             db.createObjectStore("store");
             request.transaction.oncomplete = t.step_func(function () {
                 order.push("Upgrade transaction complete");
-                var txn = db.transaction("store", "readwrite");
+                var txn = db.transaction("store", "readwrite", {
+                    durability: "relaxed",
+                });
                 var store = txn.objectStore("store");
                 store.put("value", "key");
                 txn.oncomplete = t.step_func(function () {
@@ -155,6 +157,6 @@ function upgradeneeded_test(
             order.push("Open Success");
         },
         null,
-        "transaction oncomplete ordering relative to open request onsuccess",
+        "transaction oncomplete ordering relative to open request onsuccess"
     );
 })();

@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,34 +204,45 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db) => {
         const s = db.createObjectStore("s");
         s.put("value", "key");
     },
     (t, db) => {
-        const s = db.transaction("s", "readonly").objectStore("s");
+        const s = db
+            .transaction("s", "readonly", { durability: "relaxed" })
+            .objectStore("s");
         const r = s.openKeyCursor();
         r.onsuccess = t.step_func(() => {
             r.onsuccess = null;
             const cursor = r.result;
             setTimeout(
                 t.step_func(() => {
-                    assert_throws(
+                    assert_throws_dom(
                         "TransactionInactiveError",
                         () => {
                             cursor.continue({ not: "a valid key" });
                         },
                         '"Transaction inactive" check (TransactionInactiveError) ' +
-                            'should precede "invalid key" check (DataError)',
+                            'should precede "invalid key" check (DataError)'
                     );
                     t.done();
                 }),
-                0,
+                0
             );
         });
     },
-    "IDBCursor.continue exception order: TransactionInactiveError vs. DataError",
+    "IDBCursor.continue exception order: TransactionInactiveError vs. DataError"
 );
 
 indexeddb_test(
@@ -230,7 +251,9 @@ indexeddb_test(
         s.put("value", "key");
     },
     (t, db) => {
-        const s = db.transaction("s", "readonly").objectStore("s");
+        const s = db
+            .transaction("s", "readonly", { durability: "relaxed" })
+            .objectStore("s");
         const r = s.openKeyCursor();
         r.onsuccess = t.step_func(() => {
             r.onsuccess = null;
@@ -239,22 +262,22 @@ indexeddb_test(
             r.onsuccess = t.step_func(() => {
                 setTimeout(
                     t.step_func(() => {
-                        assert_throws(
+                        assert_throws_dom(
                             "TransactionInactiveError",
                             () => {
                                 cursor.continue();
                             },
                             '"Transaction inactive" check (TransactionInactiveError) ' +
-                                'should precede "got value flag" check (InvalidStateError)',
+                                'should precede "got value flag" check (InvalidStateError)'
                         );
                         t.done();
                     }),
-                    0,
+                    0
                 );
             });
         });
     },
-    "IDBCursor.continue exception order: TransactionInactiveError vs. InvalidStateError",
+    "IDBCursor.continue exception order: TransactionInactiveError vs. InvalidStateError"
 );
 
 indexeddb_test(
@@ -263,22 +286,24 @@ indexeddb_test(
         s.put("value", "key");
     },
     (t, db) => {
-        const s = db.transaction("s", "readonly").objectStore("s");
+        const s = db
+            .transaction("s", "readonly", { durability: "relaxed" })
+            .objectStore("s");
         const r = s.openKeyCursor();
         r.onsuccess = t.step_func(() => {
             r.onsuccess = null;
             const cursor = r.result;
             cursor.continue();
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 () => {
                     cursor.continue({ not: "a valid key" });
                 },
                 '"got value flag" check (InvalidStateError) should precede ' +
-                    '"invalid key" check (DataError)',
+                    '"invalid key" check (DataError)'
             );
             t.done();
         });
     },
-    "IDBCursor.continue exception order: InvalidStateError vs. DataError",
+    "IDBCursor.continue exception order: InvalidStateError vs. DataError"
 );

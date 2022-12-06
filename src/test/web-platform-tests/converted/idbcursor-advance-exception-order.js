@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,13 +204,22 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db) => {
         const store = db.createObjectStore("s");
         store.put("value", "key");
     },
     (t, db) => {
-        const tx = db.transaction("s");
+        const tx = db.transaction("s", "readonly", { durability: "relaxed" });
         const store = tx.objectStore("s");
 
         const r = store.openKeyCursor();
@@ -211,21 +230,21 @@ indexeddb_test(
 
             setTimeout(
                 t.step_func(() => {
-                    assert_throws(
-                        new TypeError(),
+                    assert_throws_js(
+                        TypeError,
                         () => {
                             cursor.advance(0);
                         },
                         '"zero" check (TypeError) should precede ' +
-                            '"not active" check (TransactionInactiveError)',
+                            '"not active" check (TransactionInactiveError)'
                     );
                     t.done();
                 }),
-                0,
+                0
             );
         });
     },
-    "IDBCursor.advance exception order: TypeError vs. TransactionInactiveError",
+    "IDBCursor.advance exception order: TypeError vs. TransactionInactiveError"
 );
 
 indexeddb_test(
@@ -244,23 +263,23 @@ indexeddb_test(
 
             setTimeout(
                 t.step_func(() => {
-                    assert_throws(
+                    assert_throws_dom(
                         "TransactionInactiveError",
                         () => {
                             cursor.advance(1);
                         },
                         '"not active" check (TransactionInactiveError) ' +
-                            'should precede "deleted" check (InvalidStateError)',
+                            'should precede "deleted" check (InvalidStateError)'
                     );
                     t.done();
                 }),
-                0,
+                0
             );
         });
     },
     (t, db) => {},
     "IDBCursor.advance exception order: " +
-        "TransactionInactiveError vs. InvalidStateError #1",
+        "TransactionInactiveError vs. InvalidStateError #1"
 );
 
 indexeddb_test(
@@ -269,7 +288,7 @@ indexeddb_test(
         store.put("value", "key");
     },
     (t, db) => {
-        const tx = db.transaction("s");
+        const tx = db.transaction("s", "readonly", { durability: "relaxed" });
         const store = tx.objectStore("s");
 
         const r = store.openKeyCursor();
@@ -281,20 +300,20 @@ indexeddb_test(
 
             setTimeout(
                 t.step_func(() => {
-                    assert_throws(
+                    assert_throws_dom(
                         "TransactionInactiveError",
                         () => {
                             cursor.advance(1);
                         },
                         '"not active" check (TransactionInactiveError) ' +
-                            'should precede "got value" check (InvalidStateError)',
+                            'should precede "got value" check (InvalidStateError)'
                     );
                     t.done();
                 }),
-                0,
+                0
             );
         });
     },
     "IDBCursor.advance exception order: " +
-        "TransactionInactiveError vs. InvalidStateError #2",
+        "TransactionInactiveError vs. InvalidStateError #2"
 );

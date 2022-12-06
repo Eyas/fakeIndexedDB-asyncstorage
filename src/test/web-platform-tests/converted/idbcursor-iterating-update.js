@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -191,6 +201,15 @@ function keep_alive(tx, store_name) {
     return () => {
         assert_false(completed, "Transaction completed while kept alive");
         keepSpinning = false;
+    };
+}
+
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
     };
 }
 
@@ -223,7 +242,9 @@ functionsThatShouldNotAffectIteration.forEach((func) =>
             objStoreValues.forEach((value) => objStore.add(value));
         },
         (t, db) => {
-            const txn = db.transaction("items", "readwrite");
+            const txn = db.transaction("items", "readwrite", {
+                durability: "relaxed",
+            });
             const objStore = txn.objectStore("items");
             const nameIndex = objStore.index("name");
 
@@ -238,7 +259,7 @@ functionsThatShouldNotAffectIteration.forEach((func) =>
                     assert_equals(
                         cursorValues.length,
                         4,
-                        `Cursor should iterate over 4 records`,
+                        `Cursor should iterate over 4 records`
                     );
 
                     cursorValues.forEach((value, i) => {
@@ -248,6 +269,6 @@ functionsThatShouldNotAffectIteration.forEach((func) =>
                 }
             };
         },
-        `Calling ${func} doesn't affect index iteration`,
-    ),
+        `Calling ${func} doesn't affect index iteration`
+    )
 );

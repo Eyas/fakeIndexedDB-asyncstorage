@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db) => {
         db.createObjectStore("store", {
@@ -202,32 +221,33 @@ indexeddb_test(
         });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
-        assert_throws(
-            { name: "DataError" },
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
+        assert_throws_dom(
+            "DataError",
             () => {
                 tx.objectStore("store").put({ a: { b: "foo" } });
             },
-            "Put should throw if key can not be inserted at key path location.",
+            "Put should throw if key can not be inserted at key path location."
         );
         t.done();
     },
-    "The last element of keypath is validated",
+    "The last element of keypath is validated"
 );
 
-function throws(name) {
-    return () => {
-        const err = Error();
-        err.name = name;
-        throw err;
-    };
+const err = Error();
+err.name = "getter";
+
+function throwingGetter() {
+    throw err;
 }
 
 indexeddb_test(
     function (t, db) {
         const o = {};
         Object.defineProperty(o, "throws", {
-            get: throws("getter"),
+            get: throwingGetter,
             enumerable: false,
             configurable: true,
         });
@@ -237,12 +257,12 @@ indexeddb_test(
         // will have no such property, so key path evaluation
         // will fail.
         const s1 = db.createObjectStore("s1", { keyPath: "throws" });
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             () => {
                 s1.put(o);
             },
-            "Key path failing to resolve should throw",
+            "Key path failing to resolve should throw"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -250,12 +270,12 @@ indexeddb_test(
         // will have no such property, so key path evaluation
         // will fail.
         const s2 = db.createObjectStore("s2", { keyPath: "throws.x" });
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             () => {
                 s2.put(o);
             },
-            "Key path failing to resolve should throw",
+            "Key path failing to resolve should throw"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -269,7 +289,7 @@ indexeddb_test(
         assert_class_string(
             s3.put(o),
             "IDBRequest",
-            "Key injectability test at throwing getter should succeed",
+            "Key injectability test at throwing getter should succeed"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -283,20 +303,20 @@ indexeddb_test(
         assert_class_string(
             s4.put(o),
             "IDBRequest",
-            "Key injectability test past throwing getter should succeed",
+            "Key injectability test past throwing getter should succeed"
         );
     },
     (t, db) => {
         t.done();
     },
-    "Key path evaluation: Exceptions from non-enumerable getters",
+    "Key path evaluation: Exceptions from non-enumerable getters"
 );
 
 indexeddb_test(
     function (t, db) {
         const o = {};
         Object.defineProperty(o, "throws", {
-            get: throws("getter"),
+            get: throwingGetter,
             enumerable: true,
             configurable: true,
         });
@@ -304,23 +324,23 @@ indexeddb_test(
         // Value should be cloned before key path is evaluated,
         // and enumerable getter will rethrow.
         const s1 = db.createObjectStore("s1", { keyPath: "throws" });
-        assert_throws(
-            { name: "getter" },
+        assert_throws_exactly(
+            err,
             () => {
                 s1.put(o);
             },
-            "Key path resolving to throwing getter rethrows",
+            "Key path resolving to throwing getter rethrows"
         );
 
         // Value should be cloned before key path is evaluated,
         // and enumerable getter will rethrow.
         const s2 = db.createObjectStore("s2", { keyPath: "throws.x" });
-        assert_throws(
-            { name: "getter" },
+        assert_throws_exactly(
+            err,
             () => {
                 s2.put(o);
             },
-            "Key path resolving past throwing getter rethrows",
+            "Key path resolving past throwing getter rethrows"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -329,12 +349,12 @@ indexeddb_test(
             keyPath: "throws",
             autoIncrement: true,
         });
-        assert_throws(
-            { name: "getter" },
+        assert_throws_exactly(
+            err,
             () => {
                 s3.put(o);
             },
-            "Key injectability test at throwing getter should rethrow",
+            "Key injectability test at throwing getter should rethrow"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -343,18 +363,18 @@ indexeddb_test(
             keyPath: "throws.x",
             autoIncrement: true,
         });
-        assert_throws(
-            { name: "getter" },
+        assert_throws_exactly(
+            err,
             () => {
                 s4.put(o);
             },
-            "Key injectability test past throwing getter should rethrow",
+            "Key injectability test past throwing getter should rethrow"
         );
     },
     (t, db) => {
         t.done();
     },
-    "Key path evaluation: Exceptions from enumerable getters",
+    "Key path evaluation: Exceptions from enumerable getters"
 );
 
 indexeddb_test(
@@ -365,7 +385,7 @@ indexeddb_test(
         function with_proto_getter(f) {
             return function () {
                 Object.defineProperty(Object.prototype, "throws", {
-                    get: throws("getter"),
+                    get: throwingGetter,
                     enumerable: false,
                     configurable: true,
                 });
@@ -382,12 +402,12 @@ indexeddb_test(
         // will have no own property, so key path evaluation will
         // fail and DataError should be thrown.
         const s1 = db.createObjectStore("s1", { keyPath: "throws" });
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             with_proto_getter(function () {
                 s1.put({});
             }),
-            "Key path resolving to no own property throws DataError",
+            "Key path resolving to no own property throws DataError"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -395,12 +415,12 @@ indexeddb_test(
         // will have no own property, so key path evaluation will
         // fail and DataError should be thrown.
         const s2 = db.createObjectStore("s2", { keyPath: "throws.x" });
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             with_proto_getter(function () {
                 s2.put({});
             }),
-            "Key path resolving past no own property throws DataError",
+            "Key path resolving past no own property throws DataError"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -414,7 +434,7 @@ indexeddb_test(
         assert_equals(
             s3.put({}).readyState,
             "pending",
-            "put should not throw due to inherited property",
+            "put should not throw due to inherited property"
         );
 
         // Value should be cloned before key path is evaluated,
@@ -428,13 +448,13 @@ indexeddb_test(
         assert_equals(
             s4.put({}).readyState,
             "pending",
-            "put should not throw due to inherited property",
+            "put should not throw due to inherited property"
         );
     },
     (t, db) => {
         t.done();
     },
-    "Key path evaluation: Exceptions from non-enumerable getters on prototype",
+    "Key path evaluation: Exceptions from non-enumerable getters on prototype"
 );
 
 indexeddb_test(
@@ -445,7 +465,7 @@ indexeddb_test(
         function with_proto_getter(f) {
             return () => {
                 Object.defineProperty(Object.prototype, "throws", {
-                    get: throws("getter"),
+                    get: throwingGetter,
                     enumerable: true,
                     configurable: true,
                 });
@@ -461,24 +481,24 @@ indexeddb_test(
         // The clone will have no own property, so key path
         // evaluation will fail and DataError should be thrown.
         const s1 = db.createObjectStore("s1", { keyPath: "throws" });
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             with_proto_getter(function () {
                 s1.put({});
             }),
-            "Key path resolving to no own property throws DataError",
+            "Key path resolving to no own property throws DataError"
         );
 
         // Value should be cloned before key path is evaluated.
         // The clone will have no own property, so key path
         // evaluation will fail and DataError should be thrown.
         const s2 = db.createObjectStore("s2", { keyPath: "throws.x" });
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             with_proto_getter(function () {
                 s2.put({});
             }),
-            "Key path resolving past throwing getter rethrows",
+            "Key path resolving past throwing getter rethrows"
         );
 
         // Value should be cloned before key path is evaluated.
@@ -491,7 +511,7 @@ indexeddb_test(
         assert_equals(
             s3.put({}).readyState,
             "pending",
-            "put should not throw due to inherited property",
+            "put should not throw due to inherited property"
         );
 
         // Value should be cloned before key path is evaluated.
@@ -504,13 +524,13 @@ indexeddb_test(
         assert_equals(
             s4.put({}).readyState,
             "pending",
-            "put should not throw due to inherited property",
+            "put should not throw due to inherited property"
         );
     },
     (t, db) => {
         t.done();
     },
-    "Key path evaluation: Exceptions from enumerable getters on prototype",
+    "Key path evaluation: Exceptions from enumerable getters on prototype"
 );
 
 indexeddb_test(
@@ -519,33 +539,46 @@ indexeddb_test(
         store.createIndex("index", "index0");
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
 
         const array = [];
         array[99] = 1;
 
+        // Implemented as function wrapper to clean up
+        // immediately after use, otherwise it may
+        // interfere with the test harness.
         let getter_called = 0;
-        const prop = "50";
-        Object.defineProperty(Object.prototype, prop, {
-            enumerable: true,
-            configurable: true,
-            get: () => {
-                ++getter_called;
-                return "foo";
-            },
-        });
+        function with_proto_getter(f) {
+            const prop = "50";
+            Object.defineProperty(Object.prototype, prop, {
+                enumerable: true,
+                configurable: true,
+                get: () => {
+                    ++getter_called;
+                    return "foo";
+                },
+            });
+            try {
+                return f();
+            } finally {
+                delete Object.prototype[prop];
+            }
+        }
 
-        const request = tx.objectStore("store").put({ index0: array }, "key");
+        const request = with_proto_getter(() =>
+            tx.objectStore("store").put({ index0: array }, "key")
+        );
         request.onerror = t.unreached_func("put should not fail");
         request.onsuccess = t.step_func(function () {
             assert_equals(
                 getter_called,
                 0,
-                "Prototype getter should not be called",
+                "Prototype getter should not be called"
             );
-            delete Object.prototype[prop];
             t.done();
         });
     },
-    "Array key conversion should not invoke prototype getters",
+    "Array key conversion should not invoke prototype getters"
 );

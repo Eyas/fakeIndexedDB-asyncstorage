@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,31 +204,42 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db, tx) => {
         db.createObjectStore("store");
     },
     (t, db) => {
-        const tx = db.transaction("store");
+        const tx = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
         const release_tx = keep_alive(tx, "store");
         assert_true(
             is_transaction_active(tx, "store"),
-            "Transaction should be active after creation",
+            "Transaction should be active after creation"
         );
 
         setTimeout(
             t.step_func(() => {
                 assert_false(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be inactive in next task",
+                    "Transaction should be inactive in next task"
                 );
                 release_tx();
                 t.done();
             }),
-            0,
+            0
         );
     },
-    "New transactions are deactivated before next task",
+    "New transactions are deactivated before next task"
 );
 
 indexeddb_test(
@@ -226,25 +247,27 @@ indexeddb_test(
         db.createObjectStore("store");
     },
     (t, db) => {
-        const tx = db.transaction("store");
+        const tx = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
         const release_tx = keep_alive(tx, "store");
         assert_true(
             is_transaction_active(tx, "store"),
-            "Transaction should be active after creation",
+            "Transaction should be active after creation"
         );
 
         Promise.resolve().then(
             t.step_func(() => {
                 assert_true(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be active in microtask checkpoint",
+                    "Transaction should be active in microtask checkpoint"
                 );
                 release_tx();
                 t.done();
-            }),
+            })
         );
     },
-    "New transactions are not deactivated until after the microtask checkpoint",
+    "New transactions are not deactivated until after the microtask checkpoint"
 );
 
 indexeddb_test(
@@ -256,28 +279,30 @@ indexeddb_test(
 
         Promise.resolve().then(
             t.step_func(() => {
-                tx = db.transaction("store");
+                tx = db.transaction("store", "readonly", {
+                    durability: "relaxed",
+                });
                 release_tx = keep_alive(tx, "store");
                 assert_true(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be active after creation",
+                    "Transaction should be active after creation"
                 );
-            }),
+            })
         );
 
         setTimeout(
             t.step_func(() => {
                 assert_false(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be inactive in next task",
+                    "Transaction should be inactive in next task"
                 );
                 release_tx();
                 t.done();
             }),
-            0,
+            0
         );
     },
-    "New transactions from microtask are deactivated before next task",
+    "New transactions from microtask are deactivated before next task"
 );
 
 indexeddb_test(
@@ -289,28 +314,30 @@ indexeddb_test(
 
         Promise.resolve().then(
             t.step_func(() => {
-                tx = db.transaction("store");
+                tx = db.transaction("store", "readonly", {
+                    durability: "relaxed",
+                });
                 release_tx = keep_alive(tx, "store");
                 assert_true(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be active after creation",
+                    "Transaction should be active after creation"
                 );
-            }),
+            })
         );
 
         Promise.resolve().then(
             t.step_func(() => {
                 assert_true(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be active in microtask checkpoint",
+                    "Transaction should be active in microtask checkpoint"
                 );
                 release_tx();
                 t.done();
-            }),
+            })
         );
     },
     "New transactions from microtask are still active through the " +
-        "microtask checkpoint",
+        "microtask checkpoint"
 );
 
 indexeddb_test(
@@ -322,10 +349,12 @@ indexeddb_test(
         // listeners. A DOM event with multiple listeners could be used instead,
         // but not via dispatchEvent() because (drumroll...) that happens
         // synchronously so microtasks don't run between steps.
-        const tx = db.transaction("store");
+        const tx = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
         assert_true(
             is_transaction_active(tx, "store"),
-            "Transaction should be active after creation",
+            "Transaction should be active after creation"
         );
 
         const request = tx.objectStore("store").get(0);
@@ -338,15 +367,17 @@ indexeddb_test(
                 first_listener_ran = true;
                 assert_true(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be active in callback",
+                    "Transaction should be active in callback"
                 );
 
                 // We check to see if this transaction is active across unrelated event
                 // dispatch steps.
-                new_tx = db.transaction("store");
+                new_tx = db.transaction("store", "readonly", {
+                    durability: "relaxed",
+                });
                 assert_true(
                     is_transaction_active(new_tx, "store"),
-                    "New transaction should be active after creation",
+                    "New transaction should be active after creation"
                 );
 
                 Promise.resolve().then(
@@ -354,11 +385,11 @@ indexeddb_test(
                         microtasks_ran = true;
                         assert_true(
                             is_transaction_active(new_tx, "store"),
-                            "New transaction is still active in microtask checkpoint",
+                            "New transaction is still active in microtask checkpoint"
                         );
-                    }),
+                    })
                 );
-            }),
+            })
         );
         request.addEventListener(
             "success",
@@ -366,19 +397,19 @@ indexeddb_test(
                 assert_true(first_listener_ran, "first listener ran first");
                 assert_true(
                     microtasks_ran,
-                    "microtasks ran before second listener",
+                    "microtasks ran before second listener"
                 );
                 assert_true(
                     is_transaction_active(tx, "store"),
-                    "Transaction should be active in callback",
+                    "Transaction should be active in callback"
                 );
                 assert_false(
                     is_transaction_active(new_tx, "store"),
-                    "New transaction should be inactive in unrelated callback",
+                    "New transaction should be inactive in unrelated callback"
                 );
                 t.done();
-            }),
+            })
         );
     },
-    "Deactivation of new transactions happens at end of invocation",
+    "Deactivation of new transactions happens at end of invocation"
 );

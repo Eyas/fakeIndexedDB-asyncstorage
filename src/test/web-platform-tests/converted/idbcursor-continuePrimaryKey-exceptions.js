@@ -22,15 +22,15 @@ async_test(function (t) {
             assert_class_string(
                 cursor,
                 "IDBCursorWithValue",
-                "result should be a cursor",
+                "result should be a cursor"
             );
 
-            assert_throws(
+            assert_throws_dom(
                 "InvalidAccessError",
                 function () {
                     cursor.continuePrimaryKey(2, 2);
                 },
-                "continuePrimaryKey() should throw if source is not an index",
+                "continuePrimaryKey() should throw if source is not an index"
             );
         });
     });
@@ -74,10 +74,10 @@ async_test(function (t) {
             var store = db.createObjectStore("store", { keyPath: "pk" });
             var index = store.createIndex("index", "ik", { multiEntry: true });
             store.put({ pk: "a", ik: [1, 2, 3] }).onerror = t.unreached_func(
-                "put should not fail",
+                "put should not fail"
             );
             store.put({ pk: "b", ik: [1, 2, 3] }).onerror = t.unreached_func(
-                "put should not fail",
+                "put should not fail"
             );
             var request = index.openKeyCursor(null, testcase.direction);
             request.onerror = t.unreached_func("openCursor should not fail");
@@ -86,33 +86,33 @@ async_test(function (t) {
                 assert_class_string(
                     cursor,
                     "IDBCursor",
-                    "result should be a cursor",
+                    "result should be a cursor"
                 );
                 assert_equals(
                     cursor.direction,
                     testcase.direction,
-                    "direction should be as specified",
+                    "direction should be as specified"
                 );
                 assert_equals(
                     cursor.key,
                     testcase.expected_key,
-                    "key should match",
+                    "key should match"
                 );
                 assert_equals(
                     cursor.primaryKey,
                     testcase.expected_primaryKey,
-                    "primaryKey should match",
+                    "primaryKey should match"
                 );
 
-                assert_throws(
+                assert_throws_dom(
                     "InvalidAccessError",
                     function () {
                         cursor.continuePrimaryKey(
                             testcase.continue_key,
-                            testcase.continue_primaryKey,
+                            testcase.continue_primaryKey
                         );
                     },
-                    "continuePrimaryKey() should throw if direction is unique",
+                    "continuePrimaryKey() should throw if direction is unique"
                 );
             });
         });

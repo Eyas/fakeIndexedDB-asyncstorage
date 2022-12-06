@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,12 +204,23 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db) => {
         db.createObjectStore("store", { autoIncrement: true, keyPath: "id" });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         t.onabort = t.unreached_func("transaction should not abort");
 
         const store = tx.objectStore("store");
@@ -212,19 +233,19 @@ indexeddb_test(
                 assert_equals(
                     typeof value,
                     "object",
-                    "Result should be object",
+                    "Result should be object"
                 );
                 assert_equals(
                     value.name,
                     "n",
-                    "Result should have name property",
+                    "Result should have name property"
                 );
                 assert_equals(value.id, key, "Key should be injected");
                 t.done();
             });
         });
     },
-    "Key is injected into value - single segment path",
+    "Key is injected into value - single segment path"
 );
 
 indexeddb_test(
@@ -235,7 +256,9 @@ indexeddb_test(
         });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         t.onabort = t.unreached_func("transaction should not abort");
 
         const store = tx.objectStore("store");
@@ -248,19 +271,19 @@ indexeddb_test(
                 assert_equals(
                     typeof value,
                     "object",
-                    "Result should be object",
+                    "Result should be object"
                 );
                 assert_equals(
                     value.name,
                     "n",
-                    "Result should have name property",
+                    "Result should have name property"
                 );
                 assert_equals(value.a.b.id, key, "Key should be injected");
                 t.done();
             });
         });
     },
-    "Key is injected into value - multi-segment path",
+    "Key is injected into value - multi-segment path"
 );
 
 indexeddb_test(
@@ -271,7 +294,9 @@ indexeddb_test(
         });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         t.onabort = t.unreached_func("transaction should not abort");
 
         const store = tx.objectStore("store");
@@ -282,32 +307,32 @@ indexeddb_test(
                 assert_equals(
                     key,
                     1,
-                    "Key generator initial value should be 1",
+                    "Key generator initial value should be 1"
                 );
                 store.get(key).onsuccess = t.step_func((e) => {
                     const value = e.target.result;
                     assert_equals(
                         typeof value,
                         "object",
-                        "Result should be object",
+                        "Result should be object"
                     );
                     assert_equals(
                         value.name,
                         "n1",
-                        "Result should have name property",
+                        "Result should have name property"
                     );
                     assert_equals(
                         value.b.name,
                         "n2",
-                        "Result should have name property",
+                        "Result should have name property"
                     );
                     assert_equals(value.a.b.id, key, "Key should be injected");
                     t.done();
                 });
-            },
+            }
         );
     },
-    "Key is injected into value - multi-segment path, partially populated",
+    "Key is injected into value - multi-segment path, partially populated"
 );
 
 indexeddb_test(
@@ -315,20 +340,22 @@ indexeddb_test(
         db.createObjectStore("store", { autoIncrement: true, keyPath: "id" });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const store = tx.objectStore("store");
 
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             () => {
                 store.put(123);
             },
-            "Key path should be checked against value",
+            "Key path should be checked against value"
         );
 
         t.done();
     },
-    "put() throws if key cannot be injected - single segment path",
+    "put() throws if key cannot be injected - single segment path"
 );
 
 indexeddb_test(
@@ -339,26 +366,28 @@ indexeddb_test(
         });
     },
     (t, db) => {
-        const tx = db.transaction("store", "readwrite");
+        const tx = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         const store = tx.objectStore("store");
 
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             () => {
                 store.put({ a: 123 });
             },
-            "Key path should be checked against value",
+            "Key path should be checked against value"
         );
 
-        assert_throws(
+        assert_throws_dom(
             "DataError",
             () => {
                 store.put({ a: { b: 123 } });
             },
-            "Key path should be checked against value",
+            "Key path should be checked against value"
         );
 
         t.done();
     },
-    "put() throws if key cannot be injected - multi-segment path",
+    "put() throws if key cannot be injected - multi-segment path"
 );

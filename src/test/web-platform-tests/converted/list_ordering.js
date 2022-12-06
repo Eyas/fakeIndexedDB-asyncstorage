@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 function list_order(desc, unsorted, expected) {
     var objStore,
         db,
@@ -208,13 +227,13 @@ function list_order(desc, unsorted, expected) {
         assert_equals(
             db.objectStoreNames.length,
             expected.length,
-            "objectStoreNames length",
+            "objectStoreNames length"
         );
         for (var i = 0; i < expected.length; i++)
             assert_equals(
                 db.objectStoreNames[i],
                 expected[i],
-                "objectStoreNames[" + i + "]",
+                "objectStoreNames[" + i + "]"
             );
 
         for (var i = 0; i < unsorted.length; i++)
@@ -223,13 +242,13 @@ function list_order(desc, unsorted, expected) {
         assert_equals(
             objStore.indexNames.length,
             expected.length,
-            "indexNames length",
+            "indexNames length"
         );
         for (var i = 0; i < expected.length; i++)
             assert_equals(
                 objStore.indexNames[i],
                 expected[i],
-                "indexNames[" + i + "]",
+                "indexNames[" + i + "]"
             );
     };
 
@@ -237,25 +256,25 @@ function list_order(desc, unsorted, expected) {
         assert_equals(
             db.objectStoreNames.length,
             expected.length,
-            "objectStoreNames length",
+            "objectStoreNames length"
         );
         for (var i = 0; i < expected.length; i++)
             assert_equals(
                 db.objectStoreNames[i],
                 expected[i],
-                "objectStoreNames[" + i + "]",
+                "objectStoreNames[" + i + "]"
             );
 
         assert_equals(
             objStore.indexNames.length,
             expected.length,
-            "indexNames length",
+            "indexNames length"
         );
         for (var i = 0; i < expected.length; i++)
             assert_equals(
                 objStore.indexNames[i],
                 expected[i],
-                "indexNames[" + i + "]",
+                "indexNames[" + i + "]"
             );
 
         t.done();
@@ -275,17 +294,17 @@ list_order(
         "1234",
         "12345",
         "123456",
-    ],
+    ]
 );
 
 list_order(
     "numbers 'overflow'",
     [9, 1, 1000000000, 200000000000000000],
-    ["1", "1000000000", "200000000000000000", "9"],
+    ["1", "1000000000", "200000000000000000", "9"]
 );
 
 list_order(
     "lexigraphical string sort",
     ["cc", "c", "aa", "a", "bb", "b", "ab", "", "ac"],
-    ["", "a", "aa", "ab", "ac", "b", "bb", "c", "cc"],
+    ["", "a", "aa", "ab", "ac", "b", "bb", "c", "cc"]
 );

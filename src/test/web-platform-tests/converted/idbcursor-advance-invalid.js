@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 function upgrade_func(t, db, tx) {
     var objStore = db.createObjectStore("test");
     objStore.createIndex("index", "");
@@ -207,7 +226,7 @@ indexeddb_test(
     function (t, db) {
         var count = 0;
         var rq = db
-            .transaction("test")
+            .transaction("test", "readonly", { durability: "relaxed" })
             .objectStore("test")
             .index("index")
             .openCursor();
@@ -223,34 +242,34 @@ indexeddb_test(
             cursor.advance(1);
 
             // Second try
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 function () {
                     cursor.advance(1);
                 },
-                "second advance",
+                "second advance"
             );
 
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 function () {
                     cursor.advance(3);
                 },
-                "third advance",
+                "third advance"
             );
 
             count++;
         });
         rq.onerror = t.unreached_func("unexpected error");
     },
-    document.title + " - attempt to call advance twice",
+    document.title + " - attempt to call advance twice"
 );
 
 indexeddb_test(
     upgrade_func,
     function (t, db) {
         var rq = db
-            .transaction("test")
+            .transaction("test", "readonly", { durability: "relaxed" })
             .objectStore("test")
             .index("index")
             .openCursor();
@@ -258,23 +277,23 @@ indexeddb_test(
         rq.onsuccess = t.step_func(function (e) {
             var cursor = e.target.result;
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(document);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance({});
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance([]);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance("");
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance("1 2");
             });
 
@@ -282,14 +301,14 @@ indexeddb_test(
         });
         rq.onerror = t.unreached_func("unexpected error");
     },
-    document.title + " - pass something other than number",
+    document.title + " - pass something other than number"
 );
 
 indexeddb_test(
     upgrade_func,
     function (t, db) {
         var rq = db
-            .transaction("test")
+            .transaction("test", "readonly", { durability: "relaxed" })
             .objectStore("test")
             .index("index")
             .openCursor();
@@ -297,16 +316,16 @@ indexeddb_test(
         rq.onsuccess = t.step_func(function (e) {
             var cursor = e.target.result;
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(null);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(undefined);
             });
 
             var myvar = null;
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(myvar);
             });
 
@@ -314,14 +333,14 @@ indexeddb_test(
         });
         rq.onerror = t.unreached_func("unexpected error");
     },
-    document.title + " - pass null/undefined",
+    document.title + " - pass null/undefined"
 );
 
 indexeddb_test(
     upgrade_func,
     function (t, db) {
         var rq = db
-            .transaction("test")
+            .transaction("test", "readonly", { durability: "relaxed" })
             .objectStore("test")
             .index("index")
             .openCursor();
@@ -329,7 +348,7 @@ indexeddb_test(
         rq.onsuccess = t.step_func(function (e) {
             var cursor = e.target.result;
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance();
             });
 
@@ -337,14 +356,14 @@ indexeddb_test(
         });
         rq.onerror = t.unreached_func("unexpected error");
     },
-    document.title + " - missing argument",
+    document.title + " - missing argument"
 );
 
 indexeddb_test(
     upgrade_func,
     function (t, db) {
         var rq = db
-            .transaction("test")
+            .transaction("test", "readonly", { durability: "relaxed" })
             .objectStore("test")
             .index("index")
             .openCursor();
@@ -352,32 +371,32 @@ indexeddb_test(
         rq.onsuccess = t.step_func(function (e) {
             var cursor = e.target.result;
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(-1);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(NaN);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(0);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(-0);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(Infinity);
             });
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(-Infinity);
             });
 
             var myvar = -999999;
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(myvar);
             });
 
@@ -385,7 +404,7 @@ indexeddb_test(
         });
         rq.onerror = t.unreached_func("unexpected error");
     },
-    document.title + " - pass negative numbers",
+    document.title + " - pass negative numbers"
 );
 
 indexeddb_test(
@@ -393,7 +412,7 @@ indexeddb_test(
     function (t, db) {
         var count = 0;
         var rq = db
-            .transaction("test")
+            .transaction("test", "readonly", { durability: "relaxed" })
             .objectStore("test")
             .index("index")
             .openCursor();
@@ -406,7 +425,7 @@ indexeddb_test(
                 return;
             }
 
-            assert_throws({ name: "TypeError" }, function () {
+            assert_throws_js(TypeError, function () {
                 cursor.advance(0);
             });
 
@@ -415,5 +434,5 @@ indexeddb_test(
         });
         rq.onerror = t.unreached_func("unexpected error");
     },
-    document.title + " - got value not set on exception",
+    document.title + " - got value not set on exception"
 );

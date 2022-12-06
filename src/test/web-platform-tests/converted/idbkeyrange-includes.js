@@ -2,57 +2,57 @@ import "../wpt-env.js";
 
 test(function () {
     var range = IDBKeyRange.bound(12, 34);
-    assert_throws(
-        new TypeError(),
+    assert_throws_js(
+        TypeError,
         function () {
             range.includes();
         },
-        "throws if key is not specified",
+        "throws if key is not specified"
     );
 
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             range.includes(undefined);
         },
-        "throws if key is undefined",
+        "throws if key is undefined"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             range.includes(null);
         },
-        "throws if key is null",
+        "throws if key is null"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             range.includes({});
         },
-        "throws if key is not valid type",
+        "throws if key is not valid type"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             range.includes(NaN);
         },
-        "throws if key is not valid number",
+        "throws if key is not valid number"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             range.includes(new Date(NaN));
         },
-        "throws if key is not valid date",
+        "throws if key is not valid date"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             var a = [];
             a[0] = a;
             range.includes(a);
         },
-        "throws if key is not valid array",
+        "throws if key is not valid array"
     );
 }, "IDBKeyRange.includes() with invalid input");
 
@@ -157,13 +157,13 @@ test(function () {
 test(function (t) {
     assert_true(
         IDBKeyRange.bound(new Date(0), new Date()).includes(
-            new Date(102729600000),
-        ),
+            new Date(102729600000)
+        )
     );
     assert_false(
         IDBKeyRange.bound(new Date(0), new Date(1e11)).includes(
-            new Date(1e11 + 1),
-        ),
+            new Date(1e11 + 1)
+        )
     );
 
     assert_true(IDBKeyRange.bound("a", "c").includes("b"));

@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,23 +204,81 @@ function keep_alive(tx, store_name) {
     };
 }
 
-var db,
-    t = async_test();
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
 
-var open_rq = createdb(t);
-open_rq.onupgradeneeded = function (e) {
-    db = e.target.result;
-    db.createObjectStore("store", { keyPath: "key" });
-};
+// META: script=resources/support.js
 
-open_rq.onsuccess = function (e) {
-    var store = db.transaction("store").objectStore("store");
-    assert_throws(
-        "DataError",
-        function () {
-            store.get(null);
-        },
-        "throw DataError when using invalid key.",
-    );
-    t.done();
-};
+indexeddb_test(
+    (t, db) => {
+        const store = db.createObjectStore("store");
+        store.put("value", "key");
+    },
+
+    (t, db) => {
+        let transaction1GetSuccess = false;
+        let transaction2GetSuccess = false;
+
+        const onTransactionComplete = barrier_func(
+            2,
+            t.step_func_done(() => {
+                assert_true(
+                    transaction1GetSuccess,
+                    "transaction1 should have executed at least one request"
+                );
+                assert_true(
+                    transaction2GetSuccess,
+                    "transaction1 should have executed at least one request"
+                );
+            })
+        );
+
+        const transaction1 = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
+        transaction1.onabort = t.unreached_func(
+            "transaction1 should not abort"
+        );
+        transaction1.oncomplete = t.step_func(onTransactionComplete);
+
+        const transaction2 = db.transaction("store", "readonly", {
+            durability: "relaxed",
+        });
+        transaction2.onabort = t.unreached_func(
+            "transaction2 should not abort"
+        );
+        transaction2.oncomplete = t.step_func(onTransactionComplete);
+
+        // Keep both transactions alive until each has reported at least one
+        // successful operation
+
+        function doTransaction1Get() {
+            const request = transaction1.objectStore("store").get("key");
+            request.onerror = t.unreached_func("request should not fail");
+            request.onsuccess = t.step_func(() => {
+                transaction1GetSuccess = true;
+                if (!transaction2GetSuccess) doTransaction1Get();
+            });
+        }
+
+        function doTransaction2Get() {
+            // NOTE: No logging since execution order is not deterministic.
+            const request = transaction2.objectStore("store").get("key");
+            request.onerror = t.unreached_func("request should not fail");
+            request.onsuccess = t.step_func(() => {
+                transaction2GetSuccess = true;
+                if (!transaction1GetSuccess) doTransaction2Get();
+            });
+        }
+
+        doTransaction1Get();
+        doTransaction2Get();
+    },
+    "Check that read-only transactions within a database can run in parallel."
+);

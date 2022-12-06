@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 var db, db2;
 var open_rq = createdb(async_test(), undefined, 9);
 
@@ -206,7 +225,7 @@ open_rq.onupgradeneeded = function (e) {
     assert_equals(db.version, 9, "first db.version");
     assert_true(
         db.objectStoreNames.contains("store"),
-        "objectStoreNames contains store",
+        "objectStoreNames contains store"
     );
     assert_true(st.indexNames.contains("index"), "indexNames contains index");
 
@@ -228,19 +247,19 @@ open_rq.onsuccess = function (e) {
 
         assert_true(
             db2.objectStoreNames.contains("store"),
-            "second objectStoreNames contains store",
+            "second objectStoreNames contains store"
         );
         assert_true(
             db2.objectStoreNames.contains("store2"),
-            "second objectStoreNames contains store2",
+            "second objectStoreNames contains store2"
         );
         assert_true(
             store.indexNames.contains("index"),
-            "second indexNames contains index",
+            "second indexNames contains index"
         );
         assert_true(
             store.indexNames.contains("index2"),
-            "second indexNames contains index2",
+            "second indexNames contains index2"
         );
 
         store.add({ i: "Odin" }, 3);
@@ -252,11 +271,11 @@ open_rq.onsuccess = function (e) {
         assert_equals(db2.version, 9, "db2.version after error");
         assert_true(
             db2.objectStoreNames.contains("store"),
-            "objectStoreNames contains store after error",
+            "objectStoreNames contains store after error"
         );
         assert_false(
             db2.objectStoreNames.contains("store2"),
-            "objectStoreNames not contains store2 after error",
+            "objectStoreNames not contains store2 after error"
         );
 
         var open_rq3 = window.indexedDB.open(db.name);
@@ -265,34 +284,36 @@ open_rq.onsuccess = function (e) {
 
             assert_true(
                 db3.objectStoreNames.contains("store"),
-                "third objectStoreNames contains store",
+                "third objectStoreNames contains store"
             );
             assert_false(
                 db3.objectStoreNames.contains("store2"),
-                "third objectStoreNames contains store2",
+                "third objectStoreNames contains store2"
             );
 
-            var st = db3.transaction("store").objectStore("store");
+            var st = db3
+                .transaction("store", "readonly", { durability: "relaxed" })
+                .objectStore("store");
 
             assert_equals(db3.version, 9, "db3.version");
 
             assert_true(
                 st.indexNames.contains("index"),
-                "third indexNames contains index",
+                "third indexNames contains index"
             );
             assert_false(
                 st.indexNames.contains("index2"),
-                "third indexNames contains index2",
+                "third indexNames contains index2"
             );
 
             st.openCursor(null, "prev").onsuccess = this.step_func(function (
-                e,
+                e
             ) {
                 assert_equals(e.target.result.key, 2, "opencursor(prev) key");
                 assert_equals(
                     e.target.result.value.i,
                     "Jonas",
-                    "opencursor(prev) value",
+                    "opencursor(prev) value"
                 );
             });
             st.get(3).onsuccess = this.step_func(function (e) {

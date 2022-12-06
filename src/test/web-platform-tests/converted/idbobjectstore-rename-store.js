@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -413,14 +423,16 @@ promise_test((testCase) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["books"],
-                'Test setup should have created a "books" object store',
+                'Test setup should have created a "books" object store'
             );
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             bookStore2 = transaction.objectStore("books");
             return checkStoreContents(
                 testCase,
                 bookStore2,
-                "The store should have the expected contents before any renaming",
+                "The store should have the expected contents before any renaming"
             ).then(() => database.close());
         })
         .then(() =>
@@ -431,51 +443,52 @@ promise_test((testCase) => {
                 assert_equals(
                     renamedBookStore.name,
                     "renamed_books",
-                    "IDBObjectStore name should change immediately after a rename",
+                    "IDBObjectStore name should change immediately after a rename"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["renamed_books"],
                     "IDBDatabase.objectStoreNames should immediately reflect the " +
-                        "rename",
+                        "rename"
                 );
                 assert_array_equals(
                     transaction.objectStoreNames,
                     ["renamed_books"],
                     "IDBTransaction.objectStoreNames should immediately reflect the " +
-                        "rename",
+                        "rename"
                 );
                 assert_equals(
                     transaction.objectStore("renamed_books"),
                     renamedBookStore,
                     "IDBTransaction.objectStore should return the renamed object " +
                         "store when queried using the new name immediately after the " +
-                        "rename",
+                        "rename"
                 );
-                assert_throws(
+                assert_throws_dom(
                     "NotFoundError",
                     () => transaction.objectStore("books"),
                     "IDBTransaction.objectStore should throw when queried using the " +
-                        "renamed object store's old name immediately after the rename",
+                        "renamed object store's old name immediately after the rename"
                 );
-            }),
+            })
         )
         .then((database) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["renamed_books"],
                 "IDBDatabase.objectStoreNames should still reflect the rename " +
-                    "after the versionchange transaction commits",
+                    "after the versionchange transaction commits"
             );
             const transaction = database.transaction(
                 "renamed_books",
                 "readonly",
+                { durability: "relaxed" }
             );
             renamedBookStore2 = transaction.objectStore("renamed_books");
             return checkStoreContents(
                 testCase,
                 renamedBookStore2,
-                "Renaming an object store should not change its records",
+                "Renaming an object store should not change its records"
             ).then(() => database.close());
         })
         .then(() => {
@@ -483,25 +496,25 @@ promise_test((testCase) => {
                 bookStore.name,
                 "books",
                 "IDBObjectStore obtained before the rename transaction should " +
-                    "not reflect the rename",
+                    "not reflect the rename"
             );
             assert_equals(
                 bookStore2.name,
                 "books",
                 "IDBObjectStore obtained before the rename transaction should " +
-                    "not reflect the rename",
+                    "not reflect the rename"
             );
             assert_equals(
                 renamedBookStore.name,
                 "renamed_books",
                 "IDBObjectStore used in the rename transaction should keep " +
-                    "reflecting the new name after the transaction is committed",
+                    "reflecting the new name after the transaction is committed"
             );
             assert_equals(
                 renamedBookStore2.name,
                 "renamed_books",
                 "IDBObjectStore obtained after the rename transaction should " +
-                    "reflect the new name",
+                    "reflect the new name"
             );
         });
 }, "IndexedDB object store rename in new transaction");
@@ -516,32 +529,32 @@ promise_test((testCase) => {
         assert_equals(
             renamedBookStore.name,
             "renamed_books",
-            "IDBObjectStore name should change immediately after a rename",
+            "IDBObjectStore name should change immediately after a rename"
         );
         assert_array_equals(
             database.objectStoreNames,
             ["renamed_books"],
             "IDBDatabase.objectStoreNames should immediately reflect the " +
-                "rename",
+                "rename"
         );
         assert_array_equals(
             transaction.objectStoreNames,
             ["renamed_books"],
             "IDBTransaction.objectStoreNames should immediately reflect the " +
-                "rename",
+                "rename"
         );
         assert_equals(
             transaction.objectStore("renamed_books"),
             renamedBookStore,
             "IDBTransaction.objectStore should return the renamed object " +
                 "store when queried using the new name immediately after the " +
-                "rename",
+                "rename"
         );
-        assert_throws(
+        assert_throws_dom(
             "NotFoundError",
             () => transaction.objectStore("books"),
             "IDBTransaction.objectStore should throw when queried using the " +
-                "renamed object store's old name immediately after the rename",
+                "renamed object store's old name immediately after the rename"
         );
     })
         .then((database) => {
@@ -549,17 +562,18 @@ promise_test((testCase) => {
                 database.objectStoreNames,
                 ["renamed_books"],
                 "IDBDatabase.objectStoreNames should still reflect the rename " +
-                    "after the versionchange transaction commits",
+                    "after the versionchange transaction commits"
             );
             const transaction = database.transaction(
                 "renamed_books",
                 "readonly",
+                { durability: "relaxed" }
             );
             renamedBookStore2 = transaction.objectStore("renamed_books");
             return checkStoreContents(
                 testCase,
                 renamedBookStore2,
-                "Renaming an object store should not change its records",
+                "Renaming an object store should not change its records"
             ).then(() => database.close());
         })
         .then(() => {
@@ -567,13 +581,13 @@ promise_test((testCase) => {
                 renamedBookStore.name,
                 "renamed_books",
                 "IDBObjectStore used in the rename transaction should keep " +
-                    "reflecting the new name after the transaction is committed",
+                    "reflecting the new name after the transaction is committed"
             );
             assert_equals(
                 renamedBookStore2.name,
                 "renamed_books",
                 "IDBObjectStore obtained after the rename transaction should " +
-                    "reflect the new name",
+                    "reflect the new name"
             );
         });
 }, "IndexedDB object store rename in the transaction where it is created");
@@ -583,13 +597,15 @@ promise_test((testCase) => {
         createBooksStore(testCase, database);
     })
         .then((database) => {
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             return checkStoreIndexes(
                 testCase,
                 store,
                 "The object store index should have the expected contens before " +
-                    "any renaming",
+                    "any renaming"
             ).then(() => database.close());
         })
         .then(() => renameBooksStore(testCase))
@@ -597,12 +613,13 @@ promise_test((testCase) => {
             const transaction = database.transaction(
                 "renamed_books",
                 "readonly",
+                { durability: "relaxed" }
             );
             const store = transaction.objectStore("renamed_books");
             return checkStoreIndexes(
                 testCase,
                 store,
-                "Renaming an object store should not change its indexes",
+                "Renaming an object store should not change its indexes"
             ).then(() => database.close());
         });
 }, "IndexedDB object store rename covers index");
@@ -612,14 +629,16 @@ promise_test((testCase) => {
         createBooksStore(testCase, database);
     })
         .then((database) => {
-            const transaction = database.transaction("books", "readwrite");
+            const transaction = database.transaction("books", "readwrite", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             return checkStoreGenerator(
                 testCase,
                 store,
                 345679,
                 "The object store key generator should have the expected state " +
-                    "before any renaming",
+                    "before any renaming"
             ).then(() => database.close());
         })
         .then(() => renameBooksStore(testCase))
@@ -627,6 +646,7 @@ promise_test((testCase) => {
             const transaction = database.transaction(
                 "renamed_books",
                 "readwrite",
+                { durability: "relaxed" }
             );
             const store = transaction.objectStore("renamed_books");
             return checkStoreGenerator(
@@ -634,7 +654,7 @@ promise_test((testCase) => {
                 store,
                 345680,
                 "Renaming an object store should not change the state of its key " +
-                    "generator",
+                    "generator"
             ).then(() => database.close());
         });
 }, "IndexedDB object store rename covers key generator");
@@ -654,24 +674,26 @@ promise_test((testCase) => {
                     database.objectStoreNames,
                     ["books"],
                     "Renaming a store to the same name should not change " +
-                        "the store's IDBDatabase.objectStoreNames",
+                        "the store's IDBDatabase.objectStoreNames"
                 );
-            }),
+            })
         )
         .then((database) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["books"],
                 "Committing a transaction that renames a store to the same name " +
-                    "should not change the store's IDBDatabase.objectStoreNames",
+                    "should not change the store's IDBDatabase.objectStoreNames"
             );
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             return checkStoreContents(
                 testCase,
                 store,
                 "Committing a transaction that renames a store to the same name " +
-                    "should not change the store's contents",
+                    "should not change the store's contents"
             ).then(() => database.close());
         });
 }, "IndexedDB object store rename to the same name succeeds");
@@ -693,23 +715,25 @@ promise_test((testCase) => {
                     database.objectStoreNames,
                     ["not_books"],
                     "IDBDatabase.objectStoreNames should immediately reflect the " +
-                        "rename",
+                        "rename"
                 );
-            }),
+            })
         )
         .then((database) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["not_books"],
                 "IDBDatabase.objectStoreNames should still reflect the rename " +
-                    "after the versionchange transaction commits",
+                    "after the versionchange transaction commits"
             );
-            const transaction = database.transaction("not_books", "readonly");
+            const transaction = database.transaction("not_books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("not_books");
             return checkStoreContents(
                 testCase,
                 store,
-                "Renaming an object store should not change its records",
+                "Renaming an object store should not change its records"
             ).then(() => database.close());
         });
 }, "IndexedDB object store rename to the name of a deleted store succeeds");
@@ -734,42 +758,44 @@ promise_test((testCase) => {
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books", "not_books"],
-                    "IDBDatabase.objectStoreNames should immediately reflect the swap",
+                    "IDBDatabase.objectStoreNames should immediately reflect the swap"
                 );
 
                 assert_equals(
                     transaction.objectStore("books"),
                     notBookStore,
                     'IDBTransaction.objectStore should return the original "books" ' +
-                        'store when queried with "not_books" after the swap',
+                        'store when queried with "not_books" after the swap'
                 );
                 assert_equals(
                     transaction.objectStore("not_books"),
                     bookStore,
                     "IDBTransaction.objectStore should return the original " +
-                        '"not_books" store when queried with "books" after the swap',
+                        '"not_books" store when queried with "books" after the swap'
                 );
-            }),
+            })
         )
         .then((database) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["books", "not_books"],
                 "IDBDatabase.objectStoreNames should still reflect the swap " +
-                    "after the versionchange transaction commits",
+                    "after the versionchange transaction commits"
             );
-            const transaction = database.transaction("not_books", "readonly");
+            const transaction = database.transaction("not_books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("not_books");
             assert_array_equals(
                 store.indexNames,
                 ["by_author", "by_title"],
                 '"not_books" index names should still reflect the swap after the ' +
-                    "versionchange transaction commits",
+                    "versionchange transaction commits"
             );
             return checkStoreContents(
                 testCase,
                 store,
-                "Swapping two object stores should not change their records",
+                "Swapping two object stores should not change their records"
             ).then(() => database.close());
         });
 }, "IndexedDB object store swapping via renames succeeds");
@@ -790,13 +816,13 @@ promise_test((testCase) => {
                     store.name,
                     "42",
                     "IDBObjectStore name should change immediately after a " +
-                        "rename to a number",
+                        "rename to a number"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["42"],
                     "IDBDatabase.objectStoreNames should immediately reflect the " +
-                        "stringifying rename",
+                        "stringifying rename"
                 );
 
                 store.name = true;
@@ -804,7 +830,7 @@ promise_test((testCase) => {
                     store.name,
                     "true",
                     "IDBObjectStore name should change immediately after a " +
-                        "rename to a boolean",
+                        "rename to a boolean"
                 );
 
                 store.name = {};
@@ -812,7 +838,7 @@ promise_test((testCase) => {
                     store.name,
                     "[object Object]",
                     "IDBObjectStore name should change immediately after a " +
-                        "rename to an object",
+                        "rename to an object"
                 );
 
                 store.name = () => null;
@@ -820,7 +846,7 @@ promise_test((testCase) => {
                     store.name,
                     "() => null",
                     "IDBObjectStore name should change immediately after a " +
-                        "rename to a function",
+                        "rename to a function"
                 );
 
                 store.name = undefined;
@@ -828,23 +854,25 @@ promise_test((testCase) => {
                     store.name,
                     "undefined",
                     "IDBObjectStore name should change immediately after a " +
-                        "rename to undefined",
+                        "rename to undefined"
                 );
-            }),
+            })
         )
         .then((database) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["undefined"],
                 "IDBDatabase.objectStoreNames should reflect the last rename " +
-                    "after the versionchange transaction commits",
+                    "after the versionchange transaction commits"
             );
-            const transaction = database.transaction("undefined", "readonly");
+            const transaction = database.transaction("undefined", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("undefined");
             return checkStoreContents(
                 testCase,
                 store,
-                "Renaming an object store should not change its records",
+                "Renaming an object store should not change its records"
             ).then(() => database.close());
         });
 }, "IndexedDB object store rename stringifies non-string names");
@@ -868,29 +896,29 @@ for (let escapedName of ["", "\\u0000", "\\uDC00\\uD800"])
                             store.name,
                             name,
                             "IDBObjectStore name should change immediately after the " +
-                                "rename",
+                                "rename"
                         );
                         assert_array_equals(
                             database.objectStoreNames,
                             [name],
                             "IDBDatabase.objectStoreNames should immediately reflect the " +
-                                "rename",
+                                "rename"
                         );
-                    }),
+                    })
                 )
                 .then((database) => {
                     assert_array_equals(
                         database.objectStoreNames,
                         [name],
                         "IDBDatabase.objectStoreNames should reflect the rename " +
-                            "after the versionchange transaction commits",
+                            "after the versionchange transaction commits"
                     );
                     const transaction = database.transaction(name, "readonly");
                     const store = transaction.objectStore(name);
                     return checkStoreContents(
                         testCase,
                         store,
-                        "Renaming an object store should not change its records",
+                        "Renaming an object store should not change its records"
                     ).then(() => database.close());
                 });
         }, 'IndexedDB object store can be renamed to "' + escapedName + '"');

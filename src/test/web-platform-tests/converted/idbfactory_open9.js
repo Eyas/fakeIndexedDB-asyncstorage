@@ -5,7 +5,7 @@ function should_throw(val, name) {
         name = typeof val == "object" && val ? "object" : format_value(val);
     }
     test(function () {
-        assert_throws(new TypeError(), function () {
+        assert_throws_js(TypeError, function () {
             window.indexedDB.open("test", val);
         });
     }, "Calling open() with version argument " +
@@ -29,7 +29,7 @@ should_throw(false);
 should_throw({
     toString: function () {
         assert_unreached(
-            "toString should not be called for ToPrimitive [Number]",
+            "toString should not be called for ToPrimitive [Number]"
         );
     },
     valueOf: function () {
@@ -45,7 +45,7 @@ should_throw(
             return {};
         },
     },
-    "object (second)",
+    "object (second)"
 );
 should_throw(
     {
@@ -56,7 +56,7 @@ should_throw(
             return {};
         },
     },
-    "object (third)",
+    "object (third)"
 );
 
 /* Valid */

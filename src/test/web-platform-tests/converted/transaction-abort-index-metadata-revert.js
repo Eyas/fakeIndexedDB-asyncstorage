@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -407,38 +417,38 @@ promise_test((testCase) => {
                     store.indexNames,
                     ["not_by_author", "not_by_title"],
                     "IDBObjectStore.indexNames should include newly created indexes " +
-                        "before the transaction is aborted",
+                        "before the transaction is aborted"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is marked for deletion, immediately after " +
-                        "IDBTransaction.abort() returns",
+                        "IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     [],
                     "IDBObjectStore.indexNames should stop including the newly " +
-                        "created indexes immediately after IDBTransaction.abort() returns",
+                        "created indexes immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 () => index.get("query"),
                 "IDBIndex.get should throw InvalidStateError, indicating that " +
                     "the index is marked for deletion, after the transaction is " +
-                    "aborted",
+                    "aborted"
             );
             assert_array_equals(
                 store.indexNames,
                 [],
                 "IDBObjectStore.indexNames should stop including the newly " +
-                    "created indexes after the transaction is aborted",
+                    "created indexes after the transaction is aborted"
             );
         });
 }, "Created stores get their indexes marked as deleted after the transaction " + "that created them aborts");
@@ -459,49 +469,49 @@ promise_test((testCase) => {
                 index = store.index("not_by_author");
 
                 database.deleteObjectStore("not_books");
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is marked for deletion, immediately after " +
-                        "IDBDatabase.deleteObjectStore() returns",
+                        "IDBDatabase.deleteObjectStore() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     [],
                     "IDBObjectStore.indexNames should be empty immediately after " +
-                        "IDBDatabase.deleteObjectStore() returns",
+                        "IDBDatabase.deleteObjectStore() returns"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "TransactionInactiveError",
                     () => index.get("query"),
                     "IDBIndex.get should throw TransactionInactiveError, indicating " +
                         "that the index is no longer marked for deletion, immediately " +
-                        "after IDBTransaction.abort() returns",
+                        "after IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["not_by_author", "not_by_title"],
                     "IDBObjectStore.indexNames should include the deleted indexes " +
-                        "immediately after IDBTransaction.abort() returns",
+                        "immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "TransactionInactiveError",
                 () => index.get("query"),
                 "IDBIndex.get should throw TransactionInactiveError, indicating " +
                     "that the index is no longer marked for deletion, after the " +
-                    "transaction is aborted",
+                    "transaction is aborted"
             );
             assert_array_equals(
                 store.indexNames,
                 ["not_by_author", "not_by_title"],
                 "IDBObjectStore.indexNames should include the deleted indexes " +
-                    "after the transaction is aborted",
+                    "after the transaction is aborted"
             );
         });
 }, "Deleted stores get their indexes marked as not-deleted after the " + "transaction that deleted them aborts");
@@ -523,53 +533,53 @@ promise_test((testCase) => {
                     store.indexNames,
                     ["not_by_author", "not_by_title"],
                     "IDBObjectStore.indexNames should include newly created indexes " +
-                        "before the transaction is aborted",
+                        "before the transaction is aborted"
                 );
 
                 database.deleteObjectStore("not_books");
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is marked for deletion, immediately after " +
-                        "IDBDatabase.deleteObjectStore() returns",
+                        "IDBDatabase.deleteObjectStore() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     [],
                     "IDBObjectStore.indexNames should be empty immediately after " +
-                        "IDBDatabase.deleteObjectStore() returns",
+                        "IDBDatabase.deleteObjectStore() returns"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is still marked for deletion, immediately after " +
-                        "IDBTransaction.abort() returns",
+                        "IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     [],
                     "IDBObjectStore.indexNames should not include the newly " +
-                        "created indexes immediately after IDBTransaction.abort() returns",
+                        "created indexes immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 () => index.get("query"),
                 "IDBIndex.get should throw InvalidStateError, indicating that " +
                     "the index is still marked for deletion, after the transaction " +
-                    "is aborted",
+                    "is aborted"
             );
             assert_array_equals(
                 store.indexNames,
                 [],
                 "IDBObjectStore.indexNames should not include the newly " +
-                    "created indexes after the transaction is aborted",
+                    "created indexes after the transaction is aborted"
             );
         });
 }, "Created+deleted stores still have their indexes marked as deleted after " + "the transaction aborts");
@@ -592,38 +602,38 @@ promise_test((testCase) => {
                     store.indexNames,
                     ["not_by_author", "not_by_isbn", "not_by_title"],
                     "IDBObjectStore.indexNames should include newly created indexes " +
-                        "before the transaction is aborted",
+                        "before the transaction is aborted"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is marked for deletion, immediately after " +
-                        "IDBTransaction.abort() returns",
+                        "IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["not_by_author", "not_by_title"],
                     "IDBObjectStore.indexNames should stop including the newly " +
-                        "created index immediately after IDBTransaction.abort() returns",
+                        "created index immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 () => index.get("query"),
                 "IDBIndex.get should throw InvalidStateError, indicating that " +
                     "the index is marked for deletion, after the transaction is " +
-                    "aborted",
+                    "aborted"
             );
             assert_array_equals(
                 store.indexNames,
                 ["not_by_author", "not_by_title"],
                 "IDBObjectStore.indexNames should stop including the newly " +
-                    "created index after the transaction is aborted",
+                    "created index after the transaction is aborted"
             );
         });
 }, "Created indexes get marked as deleted after their transaction aborts");
@@ -644,49 +654,49 @@ promise_test((testCase) => {
                 index = store.index("not_by_author");
 
                 store.deleteIndex("not_by_author");
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is marked for deletion, immediately after " +
-                        "IDBObjectStore.deleteIndex() returns",
+                        "IDBObjectStore.deleteIndex() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["not_by_title"],
                     "IDBObjectStore.indexNames should not include the deleted index " +
-                        "immediately after IDBObjectStore.deleteIndex() returns",
+                        "immediately after IDBObjectStore.deleteIndex() returns"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "TransactionInactiveError",
                     () => index.get("query"),
                     "IDBIndex.get should throw TransactionInactiveError, indicating " +
                         "that the index is no longer marked for deletion, immediately " +
-                        "after IDBTransaction.abort() returns",
+                        "after IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["not_by_author", "not_by_title"],
                     "IDBObjectStore.indexNames should include the deleted indexes " +
-                        "immediately after IDBTransaction.abort() returns",
+                        "immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "TransactionInactiveError",
                 () => index.get("query"),
                 "IDBIndex.get should throw TransactionInactiveError, indicating " +
                     "that the index is no longer marked for deletion, after the " +
-                    "transaction is aborted",
+                    "transaction is aborted"
             );
             assert_array_equals(
                 store.indexNames,
                 ["not_by_author", "not_by_title"],
                 "IDBObjectStore.indexNames should include the deleted indexes " +
-                    "after the transaction is aborted",
+                    "after the transaction is aborted"
             );
         });
 }, "Deleted indexes get marked as not-deleted after the transaction aborts");
@@ -709,53 +719,53 @@ promise_test((testCase) => {
                     store.indexNames,
                     ["not_by_author", "not_by_isbn", "not_by_title"],
                     "IDBObjectStore.indexNames should include newly created indexes " +
-                        "before the transaction is aborted",
+                        "before the transaction is aborted"
                 );
 
                 store.deleteIndex("not_by_isbn");
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is marked for deletion, immediately after " +
-                        "IDBObjectStore.deleteIndex() returns",
+                        "IDBObjectStore.deleteIndex() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["not_by_author", "not_by_title"],
                     "IDBObjectStore.indexNames should not include the deleted index " +
-                        "immediately after IDBObjectStore.deleteIndex() returns",
+                        "immediately after IDBObjectStore.deleteIndex() returns"
                 );
 
                 transaction.abort();
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     () => index.get("query"),
                     "IDBIndex.get should throw InvalidStateError, indicating that " +
                         "the index is still marked for deletion, immediately after " +
-                        "IDBTransaction.abort() returns",
+                        "IDBTransaction.abort() returns"
                 );
                 assert_array_equals(
                     store.indexNames,
                     ["not_by_author", "not_by_title"],
                     "IDBObjectStore.indexNames should stop including the newly " +
-                        "created index immediately after IDBTransaction.abort() returns",
+                        "created index immediately after IDBTransaction.abort() returns"
                 );
-            }),
+            })
         )
         .then(() => {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 () => index.get("query"),
                 "IDBIndex.get should throw InvalidStateError, indicating that " +
                     "the index is marked for deletion, after the transaction is " +
-                    "aborted",
+                    "aborted"
             );
             assert_array_equals(
                 store.indexNames,
                 ["not_by_author", "not_by_title"],
                 "IDBObjectStore.indexNames should stop including the newly " +
-                    "created index after the transaction is aborted",
+                    "created index after the transaction is aborted"
             );
         });
 }, "Created+deleted indexes are still marked as deleted after their " + "transaction aborts");

@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -443,8 +453,8 @@ promise_test((testCase) => {
                                 request.onsuccess = testCase.step_func(() => {
                                     reject(
                                         new Error(
-                                            "IDB requests should not succeed after transaction abort",
-                                        ),
+                                            "IDB requests should not succeed after transaction abort"
+                                        )
                                     );
                                 });
                                 request.onerror = testCase.step_func(
@@ -455,9 +465,9 @@ promise_test((testCase) => {
                                             request.error,
                                         ]);
                                         resolve();
-                                    },
+                                    }
                                 );
-                            }),
+                            })
                         );
                     }
                     transaction.abort();
@@ -469,18 +479,18 @@ promise_test((testCase) => {
             assert_equals(
                 results.length,
                 requests.length,
-                "Promise.all should resolve after all sub-promises resolve",
+                "Promise.all should resolve after all sub-promises resolve"
             );
             for (let i = 0; i < requests.length; ++i) {
                 assert_equals(
                     results[i][0],
                     i,
-                    "error event order should match request order",
+                    "error event order should match request order"
                 );
                 assert_equals(
                     results[i][1].name,
                     "AbortError",
-                    "transaction aborting should result in AbortError on all requests",
+                    "transaction aborting should result in AbortError on all requests"
                 );
             }
         });

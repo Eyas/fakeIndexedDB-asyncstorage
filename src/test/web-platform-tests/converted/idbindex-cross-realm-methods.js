@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,190 +204,108 @@ function keep_alive(tx, store_name) {
     };
 }
 
-var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
 
-function getall_test(func, name) {
-    indexeddb_test(
-        function (t, connection, tx) {
-            var store = connection.createObjectStore("generated", {
-                autoIncrement: true,
-                keyPath: "id",
-            });
-            alphabet.forEach(function (letter) {
-                store.put({ ch: letter });
-            });
+("use strict");
+const INDEX_LOWER = 1000;
+const INDEX_UPPER = 1001;
+const INDEX_RANGE = IDBKeyRange.bound(INDEX_LOWER, INDEX_UPPER);
 
-            store = connection.createObjectStore("out-of-line", null);
-            alphabet.forEach(function (letter) {
-                store.put("value-" + letter, letter);
-            });
-
-            store = connection.createObjectStore("empty", null);
+const testCases = [
+    {
+        methodName: "get",
+        arguments: [INDEX_LOWER],
+        validateResult: (e) => {
+            assert_equals(e.target.result.indexedKey, INDEX_LOWER);
         },
-        func,
-        name,
-    );
+    },
+    {
+        methodName: "getKey",
+        arguments: [INDEX_UPPER],
+        validateResult: (e) => {
+            assert_equals(e.target.result, INDEX_UPPER);
+        },
+    },
+    {
+        methodName: "getAll",
+        arguments: [INDEX_RANGE],
+        validateResult: (e) => {
+            assert_array_equals(
+                e.target.result.map((v) => v.indexedKey),
+                [INDEX_LOWER, INDEX_UPPER]
+            );
+        },
+    },
+    {
+        methodName: "getAllKeys",
+        arguments: [INDEX_RANGE],
+        validateResult: (e) => {
+            assert_array_equals(e.target.result, [INDEX_LOWER, INDEX_UPPER]);
+        },
+    },
+    {
+        methodName: "count",
+        arguments: [INDEX_RANGE],
+        validateResult: (e) => {
+            assert_equals(e.target.result, 2);
+        },
+    },
+    {
+        methodName: "openCursor",
+        arguments: [],
+        validateResult: (e) => {
+            const cursor = e.target.result;
+            assert_true(cursor instanceof IDBCursor);
+            assert_equals(cursor.value.indexedKey, INDEX_LOWER);
+        },
+    },
+    {
+        methodName: "openKeyCursor",
+        arguments: [],
+        validateResult: (e) => {
+            const cursor = e.target.result;
+            assert_true(cursor instanceof IDBCursor);
+            assert_equals(cursor.key, INDEX_LOWER);
+        },
+    },
+];
+
+for (const testCase of testCases) {
+    async_test((t) => {
+        const iframe = document.createElement("iframe");
+        iframe.onload = t.step_func(() => {
+            const method =
+                iframe.contentWindow.IDBIndex.prototype[testCase.methodName];
+            iframe.remove();
+
+            let db;
+            const open_rq = createdb(t);
+            open_rq.onupgradeneeded = t.step_func((e) => {
+                db = e.target.result;
+                const objectStore = db.createObjectStore("store");
+                objectStore.createIndex("index", "indexedKey");
+                objectStore.add({ indexedKey: INDEX_LOWER }, INDEX_LOWER);
+                objectStore.add({ indexedKey: INDEX_UPPER }, INDEX_UPPER);
+            });
+
+            open_rq.onsuccess = t.step_func(() => {
+                const index = db
+                    .transaction("store", "readonly", { durability: "relaxed" })
+                    .objectStore("store")
+                    .index("index");
+                const rq = method.call(index, ...testCase.arguments);
+                rq.onsuccess = t.step_func_done((e) => {
+                    testCase.validateResult(e);
+                });
+            });
+        });
+        document.body.append(iframe);
+    }, `Cross-realm IDBIndex::${testCase.methodName}() method from detached <iframe> works as expected`);
 }
-
-function createGetAllKeysRequest(t, storeName, connection, range, maxCount) {
-    var transaction = connection.transaction(storeName, "readonly");
-    var store = transaction.objectStore(storeName);
-    var req = store.getAllKeys(range, maxCount);
-    req.onerror = t.unreached_func("getAllKeys request should succeed");
-    return req;
-}
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(t, "out-of-line", connection, "c");
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, ["c"]);
-        t.done();
-    });
-}, "Single item get");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(t, "generated", connection, 3);
-    req.onsuccess = t.step_func(function (evt) {
-        var data = evt.target.result;
-        assert_true(Array.isArray(data));
-        assert_array_equals(data, [3]);
-        t.done();
-    });
-}, "Single item get (generated key)");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(t, "empty", connection);
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(
-            evt.target.result,
-            [],
-            "getAllKeys() on empty object store should return an empty " +
-                "array",
-        );
-        t.done();
-    });
-}, "getAllKeys on empty object store");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(t, "out-of-line", connection);
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, alphabet);
-        t.done();
-    });
-}, "Get all values");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "out-of-line",
-        connection,
-        undefined,
-        10,
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, "abcdefghij".split(""));
-        t.done();
-    });
-}, "Test maxCount");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "out-of-line",
-        connection,
-        IDBKeyRange.bound("g", "m"),
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, "ghijklm".split(""));
-        t.done();
-    });
-}, "Get bound range");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "out-of-line",
-        connection,
-        IDBKeyRange.bound("g", "m"),
-        3,
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, ["g", "h", "i"]);
-        t.done();
-    });
-}, "Get bound range with maxCount");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "out-of-line",
-        connection,
-        IDBKeyRange.bound("g", "k", false, true),
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, ["g", "h", "i", "j"]);
-        t.done();
-    });
-}, "Get upper excluded");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "out-of-line",
-        connection,
-        IDBKeyRange.bound("g", "k", true, false),
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, ["h", "i", "j", "k"]);
-        t.done();
-    });
-}, "Get lower excluded");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "generated",
-        connection,
-        IDBKeyRange.bound(4, 15),
-        3,
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        var data = evt.target.result;
-        assert_true(Array.isArray(data));
-        assert_array_equals(data, [4, 5, 6]);
-        t.done();
-    });
-}, "Get bound range (generated) with maxCount");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "out-of-line",
-        connection,
-        "Doesn't exist",
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(
-            evt.target.result,
-            [],
-            "getAllKeys() using a nonexistent key should return an " +
-                "empty array",
-        );
-        t.done();
-    });
-    req.onerror = t.unreached_func("getAllKeys request should succeed");
-}, "Non existent key");
-
-getall_test(function (t, connection) {
-    var req = createGetAllKeysRequest(
-        t,
-        "out-of-line",
-        connection,
-        undefined,
-        0,
-    );
-    req.onsuccess = t.step_func(function (evt) {
-        assert_array_equals(evt.target.result, alphabet);
-        t.done();
-    });
-}, "zero maxCount");

@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 var alphabet = "abcdefghijklmnopqrstuvwxyz".split("");
 
 function getall_test(func, name) {
@@ -219,7 +238,7 @@ function getall_test(func, name) {
                 multiEntry: true,
             });
             alphabet.forEach(function (letter) {
-                var attrs = [];
+                attrs = [];
                 if (["a", "e", "i", "o", "u"].indexOf(letter) != -1)
                     attrs.push("vowel");
                 else attrs.push("consonant");
@@ -232,7 +251,7 @@ function getall_test(func, name) {
             index = store.createIndex("test_idx", "upper");
         },
         func,
-        name,
+        name
     );
 }
 
@@ -260,7 +279,7 @@ getall_test(function (t, connection) {
         assert_array_equals(
             evt.target.result,
             [],
-            "getAllKeys() on empty object store should return empty array",
+            "getAllKeys() on empty object store should return empty array"
         );
         t.done();
     });
@@ -272,7 +291,7 @@ getall_test(function (t, connection) {
         assert_array_equals(
             evt.target.result,
             alphabet,
-            "getAllKeys() should return a..z",
+            "getAllKeys() should return a..z"
         );
         t.done();
     });
@@ -287,7 +306,7 @@ getall_test(function (t, connection) {
                 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
                 19, 20, 21, 22, 23, 24, 25, 26,
             ],
-            "getAllKeys() should return 1..26",
+            "getAllKeys() should return 1..26"
         );
         t.done();
     });
@@ -299,13 +318,13 @@ getall_test(function (t, connection) {
         "out-of-line",
         connection,
         undefined,
-        10,
+        10
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             "abcdefghij".split(""),
-            "getAllKeys() should return a..j",
+            "getAllKeys() should return a..j"
         );
         t.done();
     });
@@ -316,13 +335,13 @@ getall_test(function (t, connection) {
         t,
         "out-of-line",
         connection,
-        IDBKeyRange.bound("G", "M"),
+        IDBKeyRange.bound("G", "M")
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             "ghijklm".split(""),
-            "getAllKeys() should return g..m",
+            "getAllKeys() should return g..m"
         );
         t.done();
     });
@@ -334,13 +353,13 @@ getall_test(function (t, connection) {
         "out-of-line",
         connection,
         IDBKeyRange.bound("G", "M"),
-        3,
+        3
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             ["g", "h", "i"],
-            "getAllKeys() should return g..i",
+            "getAllKeys() should return g..i"
         );
         t.done();
     });
@@ -351,13 +370,13 @@ getall_test(function (t, connection) {
         t,
         "out-of-line",
         connection,
-        IDBKeyRange.bound("G", "K", false, true),
+        IDBKeyRange.bound("G", "K", false, true)
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             ["g", "h", "i", "j"],
-            "getAllKeys() should return g..j",
+            "getAllKeys() should return g..j"
         );
         t.done();
     });
@@ -368,13 +387,13 @@ getall_test(function (t, connection) {
         t,
         "out-of-line",
         connection,
-        IDBKeyRange.bound("G", "K", true, false),
+        IDBKeyRange.bound("G", "K", true, false)
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             ["h", "i", "j", "k"],
-            "getAllKeys() should return h..k",
+            "getAllKeys() should return h..k"
         );
         t.done();
     });
@@ -386,13 +405,13 @@ getall_test(function (t, connection) {
         "generated",
         connection,
         IDBKeyRange.bound(4, 15),
-        3,
+        3
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             [],
-            "getAllKeys() should return []",
+            "getAllKeys() should return []"
         );
         t.done();
     });
@@ -403,13 +422,13 @@ getall_test(function (t, connection) {
         t,
         "out-of-line",
         connection,
-        "Doesn't exist",
+        "Doesn't exist"
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             [],
-            "getAllKeys() using a nonexistent key should return empty array",
+            "getAllKeys() using a nonexistent key should return empty array"
         );
         t.done();
         req.onerror = t.unreached_func("getAllKeys request should succeed");
@@ -422,13 +441,13 @@ getall_test(function (t, connection) {
         "out-of-line",
         connection,
         undefined,
-        0,
+        0
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(
             evt.target.result,
             alphabet,
-            "getAllKeys() should return a..z",
+            "getAllKeys() should return a..z"
         );
         t.done();
     });
@@ -439,7 +458,7 @@ getall_test(function (t, connection) {
         t,
         "out-of-line-multi",
         connection,
-        "vowel",
+        "vowel"
     );
     req.onsuccess = t.step_func(function (evt) {
         assert_array_equals(evt.target.result, ["A", "E", "I", "O", "U"]);

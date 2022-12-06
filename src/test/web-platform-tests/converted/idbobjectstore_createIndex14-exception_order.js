@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,25 +204,34 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     function (t, db, txn) {
         var store = db.createObjectStore("s");
     },
     function (t, db) {
-        var txn = db.transaction("s");
+        var txn = db.transaction("s", "readonly", { durability: "relaxed" });
         var store = txn.objectStore("s");
         txn.oncomplete = function () {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 function () {
                     store.createIndex("index", "foo");
                 },
-                "Mode check should precede state check of the transaction",
+                "Mode check should precede state check of the transaction"
             );
             t.done();
         };
     },
-    "InvalidStateError(Incorrect mode) vs. TransactionInactiveError",
+    "InvalidStateError(Incorrect mode) vs. TransactionInactiveError"
 );
 
 var gDeletedObjectStore;
@@ -221,18 +240,18 @@ indexeddb_test(
         gDeletedObjectStore = db.createObjectStore("s");
         db.deleteObjectStore("s");
         txn.oncomplete = function () {
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 function () {
                     gDeletedObjectStore.createIndex("index", "foo");
                 },
-                "Deletion check should precede transaction-state check",
+                "Deletion check should precede transaction-state check"
             );
             t.done();
         };
     },
     null,
-    "InvalidStateError(Deleted ObjectStore) vs. TransactionInactiveError",
+    "InvalidStateError(Deleted ObjectStore) vs. TransactionInactiveError"
 );
 
 indexeddb_test(
@@ -240,32 +259,32 @@ indexeddb_test(
         var store = db.createObjectStore("s");
         store.createIndex("index", "foo");
         txn.oncomplete = function () {
-            assert_throws(
+            assert_throws_dom(
                 "TransactionInactiveError",
                 function () {
                     store.createIndex("index", "foo");
                 },
-                "Transaction-state check should precede index name check",
+                "Transaction-state check should precede index name check"
             );
             t.done();
         };
     },
     null,
-    "TransactionInactiveError vs. ConstraintError",
+    "TransactionInactiveError vs. ConstraintError"
 );
 
 indexeddb_test(
     function (t, db) {
         var store = db.createObjectStore("s");
         store.createIndex("index", "foo");
-        assert_throws(
+        assert_throws_dom(
             "ConstraintError",
             function () {
                 store.createIndex("index", "invalid key path");
             },
-            "Index name check should precede syntax check of the key path",
+            "Index name check should precede syntax check of the key path"
         );
-        assert_throws(
+        assert_throws_dom(
             "ConstraintError",
             function () {
                 store.createIndex("index", [
@@ -273,30 +292,30 @@ indexeddb_test(
                     "invalid key path 2",
                 ]);
             },
-            "Index name check should precede syntax check of the key path",
+            "Index name check should precede syntax check of the key path"
         );
         t.done();
     },
     null,
-    "ConstraintError vs. SyntaxError",
+    "ConstraintError vs. SyntaxError"
 );
 
 indexeddb_test(
     function (t, db) {
         var store = db.createObjectStore("s");
-        assert_throws(
+        assert_throws_dom(
             "SyntaxError",
             function () {
                 store.createIndex(
                     "index",
                     ["invalid key path 1", "invalid key path 2"],
-                    { multiEntry: true },
+                    { multiEntry: true }
                 );
             },
-            "Syntax check should precede multiEntry check of the key path",
+            "Syntax check should precede multiEntry check of the key path"
         );
         t.done();
     },
     null,
-    "SyntaxError vs. InvalidAccessError",
+    "SyntaxError vs. InvalidAccessError"
 );

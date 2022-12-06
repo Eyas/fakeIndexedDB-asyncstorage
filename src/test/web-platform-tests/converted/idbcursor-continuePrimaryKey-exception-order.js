@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -191,6 +201,15 @@ function keep_alive(tx, store_name) {
     return () => {
         assert_false(completed, "Transaction completed while kept alive");
         keepSpinning = false;
+    };
+}
+
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
     };
 }
 
@@ -233,18 +252,18 @@ indexeddb_test(
             store.deleteIndex("idx");
         });
         txn.oncomplete = t.step_func(function () {
-            assert_throws(
+            assert_throws_dom(
                 "TransactionInactiveError",
                 function () {
                     cursor.continuePrimaryKey("A", 4);
                 },
-                "transaction-state check should precede deletion check",
+                "transaction-state check should precede deletion check"
             );
             t.done();
         });
     },
     null,
-    "TransactionInactiveError v.s. InvalidStateError(deleted index)",
+    "TransactionInactiveError v.s. InvalidStateError(deleted index)"
 );
 
 indexeddb_test(
@@ -260,18 +279,18 @@ indexeddb_test(
 
             db.deleteObjectStore("test");
 
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 function () {
                     cursor.continuePrimaryKey("A", 4);
                 },
-                "deletion check should precede index source check",
+                "deletion check should precede index source check"
             );
             t.done();
         });
     },
     null,
-    "InvalidStateError(deleted source) v.s. InvalidAccessError(incorrect source)",
+    "InvalidStateError(deleted source) v.s. InvalidAccessError(incorrect source)"
 );
 
 indexeddb_test(
@@ -288,18 +307,18 @@ indexeddb_test(
 
             store.deleteIndex("idx");
 
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 function () {
                     cursor.continuePrimaryKey("A", 4);
                 },
-                "deletion check should precede cursor direction check",
+                "deletion check should precede cursor direction check"
             );
             t.done();
         });
     },
     null,
-    "InvalidStateError(deleted source) v.s. InvalidAccessError(incorrect direction)",
+    "InvalidStateError(deleted source) v.s. InvalidAccessError(incorrect direction)"
 );
 
 indexeddb_test(
@@ -320,18 +339,18 @@ indexeddb_test(
                 return;
             }
 
-            assert_throws(
+            assert_throws_dom(
                 "InvalidAccessError",
                 function () {
                     cursor.continuePrimaryKey("A", 4);
                 },
-                "direction check should precede got_value_flag check",
+                "direction check should precede got_value_flag check"
             );
             t.done();
         });
     },
     null,
-    "InvalidAccessError(incorrect direction) v.s. InvalidStateError(iteration complete)",
+    "InvalidAccessError(incorrect direction) v.s. InvalidStateError(iteration complete)"
 );
 
 indexeddb_test(
@@ -352,19 +371,19 @@ indexeddb_test(
 
                 cursor.continue();
 
-                assert_throws(
+                assert_throws_dom(
                     "InvalidAccessError",
                     function () {
                         cursor.continuePrimaryKey("A", 4);
                     },
-                    "direction check should precede iteration ongoing check",
+                    "direction check should precede iteration ongoing check"
                 );
                 t.done();
             }
         });
     },
     null,
-    "InvalidAccessError(incorrect direction) v.s. InvalidStateError(iteration ongoing)",
+    "InvalidAccessError(incorrect direction) v.s. InvalidStateError(iteration ongoing)"
 );
 
 indexeddb_test(
@@ -381,19 +400,19 @@ indexeddb_test(
 
                 cursor.continue();
 
-                assert_throws(
+                assert_throws_dom(
                     "InvalidAccessError",
                     function () {
                         cursor.continuePrimaryKey("A", 4);
                     },
-                    "index source check should precede iteration ongoing check",
+                    "index source check should precede iteration ongoing check"
                 );
                 t.done();
             }
         });
     },
     null,
-    "InvalidAccessError(incorrect source) v.s. InvalidStateError(iteration ongoing)",
+    "InvalidAccessError(incorrect source) v.s. InvalidStateError(iteration ongoing)"
 );
 
 indexeddb_test(
@@ -413,18 +432,18 @@ indexeddb_test(
                 return;
             }
 
-            assert_throws(
+            assert_throws_dom(
                 "InvalidAccessError",
                 function () {
                     cursor.continuePrimaryKey("A", 4);
                 },
-                "index source check should precede got_value_flag check",
+                "index source check should precede got_value_flag check"
             );
             t.done();
         });
     },
     null,
-    "InvalidAccessError(incorrect source) v.s. InvalidStateError(iteration complete)",
+    "InvalidAccessError(incorrect source) v.s. InvalidStateError(iteration complete)"
 );
 
 indexeddb_test(
@@ -442,19 +461,19 @@ indexeddb_test(
 
                 cursor.continue();
 
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
                     function () {
                         cursor.continuePrimaryKey(null, 4);
                     },
-                    "iteration ongoing check should precede unset key check",
+                    "iteration ongoing check should precede unset key check"
                 );
                 t.done();
             }
         });
     },
     null,
-    "InvalidStateError(iteration ongoing) v.s. DataError(unset key)",
+    "InvalidStateError(iteration ongoing) v.s. DataError(unset key)"
 );
 
 indexeddb_test(
@@ -475,18 +494,18 @@ indexeddb_test(
                 return;
             }
 
-            assert_throws(
+            assert_throws_dom(
                 "InvalidStateError",
                 function () {
                     cursor.continuePrimaryKey(null, 4);
                 },
-                "got_value_flag check should precede unset key check",
+                "got_value_flag check should precede unset key check"
             );
             t.done();
         });
     },
     null,
-    "InvalidStateError(iteration complete) v.s. DataError(unset key)",
+    "InvalidStateError(iteration complete) v.s. DataError(unset key)"
 );
 
 indexeddb_test(
@@ -501,18 +520,18 @@ indexeddb_test(
             cursor = e.target.result;
             assert_true(!!cursor, "acquire cursor");
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey(null, 4);
                 },
-                "DataError is expected if key is unset.",
+                "DataError is expected if key is unset."
             );
             t.done();
         });
     },
     null,
-    "DataError(unset key)",
+    "DataError(unset key)"
 );
 
 indexeddb_test(
@@ -527,18 +546,18 @@ indexeddb_test(
             cursor = e.target.result;
             assert_true(!!cursor, "acquire cursor");
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey("A", null);
                 },
-                "DataError is expected if primary key is unset.",
+                "DataError is expected if primary key is unset."
             );
             t.done();
         });
     },
     null,
-    "DataError(unset primary key)",
+    "DataError(unset primary key)"
 );
 
 indexeddb_test(
@@ -556,35 +575,35 @@ indexeddb_test(
             assert_equals(cursor.key, "B", "expected key");
             assert_equals(cursor.primaryKey, 5, "expected primary key");
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey("A", 6);
                 },
-                "DataError is expected if key is lower then current one.",
+                "DataError is expected if key is lower then current one."
             );
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey("B", 5);
                 },
-                "DataError is expected if primary key is equal to current one.",
+                "DataError is expected if primary key is equal to current one."
             );
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey("B", 4);
                 },
-                "DataError is expected if primary key is lower than current one.",
+                "DataError is expected if primary key is lower than current one."
             );
 
             t.done();
         });
     },
     null,
-    "DataError(keys are lower then current one) in 'next' direction",
+    "DataError(keys are lower then current one) in 'next' direction"
 );
 
 indexeddb_test(
@@ -602,33 +621,33 @@ indexeddb_test(
             assert_equals(cursor.key, "B", "expected key");
             assert_equals(cursor.primaryKey, 7, "expected primary key");
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey("C", 6);
                 },
-                "DataError is expected if key is larger then current one.",
+                "DataError is expected if key is larger then current one."
             );
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey("B", 7);
                 },
-                "DataError is expected if primary key is equal to current one.",
+                "DataError is expected if primary key is equal to current one."
             );
 
-            assert_throws(
+            assert_throws_dom(
                 "DataError",
                 function () {
                     cursor.continuePrimaryKey("B", 8);
                 },
-                "DataError is expected if primary key is larger than current one.",
+                "DataError is expected if primary key is larger than current one."
             );
 
             t.done();
         });
     },
     null,
-    "DataError(keys are larger then current one) in 'prev' direction",
+    "DataError(keys are larger then current one) in 'prev' direction"
 );

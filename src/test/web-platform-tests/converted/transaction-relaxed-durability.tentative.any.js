@@ -1,4 +1,4 @@
-import "../../wpt-env.js";
+import "../wpt-env.js";
 
 ("use strict");
 
@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -388,210 +398,57 @@ function timeoutPromise(ms) {
     });
 }
 
-// Returns the "name" property written to the object with the given ID.
-function nameForId(id) {
-    return `Object ${id}`;
-}
+// META: script=resources/support-promises.js
+// META: timeout=long
 
-// Initial database setup used by all the reading-autoincrement tests.
-async function setupAutoincrementDatabase(testCase) {
-    const database = await createDatabase(testCase, (database) => {
-        const store = database.createObjectStore("store", {
-            autoIncrement: true,
-            keyPath: "id",
+/**
+ * This file contains the webplatform smoke tests for the optional
+ * durability parameter of the IndexedDB transaction API.
+ *
+ * @author enne@chromium.org
+ */
+
+// Smoke test optional parameter on IndexedDB.transaction.
+let cases = [
+    { options: undefined, expected: "default" },
+    { options: {}, expected: "default" },
+    { options: { durability: "default" }, expected: "default" },
+    { options: { durability: "relaxed" }, expected: "relaxed" },
+    { options: { durability: "strict" }, expected: "strict" },
+];
+
+for (let i = 0; i < cases.length; ++i) {
+    promise_test(async (testCase) => {
+        const db = await createDatabase(testCase, (db) => {
+            createBooksStore(testCase, db);
         });
-        store.createIndex("by_name", "name", { unique: true });
-        store.createIndex("by_id", "id", { unique: true });
+        const txn = db.transaction(["books"], "readwrite", cases[i].options);
+        const objectStore = txn.objectStore("books");
+        objectStore.put({ isbn: "one", title: "title1" });
+        await promiseForTransaction(testCase, txn);
 
-        // Cover writing from the initial upgrade transaction.
-        for (let i = 1; i <= 16; ++i) {
-            if (i % 2 == 0) {
-                store.put({ name: nameForId(i), id: i });
-            } else {
-                store.put({ name: nameForId(i) });
-            }
-        }
-    });
+        assert_equals(txn.durability, cases[i].expected);
 
-    // Cover writing from a subsequent transaction.
-    const transaction = database.transaction(["store"], "readwrite");
-    const store = transaction.objectStore("store");
-    for (let i = 17; i <= 32; ++i) {
-        if (i % 2 == 0) {
-            store.put({ name: nameForId(i), id: i });
-        } else {
-            store.put({ name: nameForId(i) });
-        }
-    }
-    await promiseForTransaction(testCase, transaction);
-
-    return database;
-}
-
-// Returns the IDs used by the object store, sorted as strings.
-//
-// This is used to determine the correct order of records when retrieved from an
-// index that uses stringified IDs.
-function idsSortedByStringCompare() {
-    const stringIds = [];
-    for (let i = 1; i <= 32; ++i) stringIds.push(i);
-    stringIds.sort((a, b) => indexedDB.cmp(`${a}`, `${b}`));
-    return stringIds;
-}
-
-async function iterateCursor(testCase, cursorRequest, callback) {
-    // This uses requestWatcher() directly instead of using promiseForRequest()
-    // inside the loop to avoid creating multiple EventWatcher instances. In turn,
-    // this avoids ending up with O(N) listeners for the request and O(N^2)
-    // dispatched events.
-    const eventWatcher = requestWatcher(testCase, cursorRequest);
-    while (true) {
-        const event = await eventWatcher.wait_for("success");
-        const cursor = event.target.result;
-        if (cursor === null) return;
-        callback(cursor);
-        cursor.continue();
-    }
-}
-
-// Returns equivalent information to getAllKeys() by iterating a cursor.
-//
-// Returns an array with one dictionary per entry in the source. The dictionary
-// has the properties "key" and "primaryKey".
-async function getAllKeysViaCursor(testCase, cursorSource) {
-    const results = [];
-    await iterateCursor(testCase, cursorSource.openKeyCursor(), (cursor) => {
-        results.push({ key: cursor.key, primaryKey: cursor.primaryKey });
-    });
-    return results;
-}
-
-// Returns equivalent information to getAll() by iterating a cursor.
-//
-// Returns an array with one dictionary per entry in the source. The dictionary
-// has the properties "key", "primaryKey" and "value".
-async function getAllViaCursor(testCase, cursorSource) {
-    const results = [];
-    await iterateCursor(testCase, cursorSource.openCursor(), (cursor) => {
-        results.push({
-            key: cursor.key,
-            primaryKey: cursor.primaryKey,
-            value: cursor.value,
-        });
-    });
-    return results;
-}
-
-// META: global=window,dedicatedworker,sharedworker,serviceworker
-// META: script=../support-promises.js
-// META: script=./reading-autoincrement-common.js
-
-promise_test(async (testCase) => {
-    const database = await setupAutoincrementDatabase(testCase);
-
-    const transaction = database.transaction(["store"], "readonly");
-    const store = transaction.objectStore("store");
-    const index = store.index("by_id");
-    const request = index.getAll();
-    const result = await promiseForRequest(testCase, request);
-    assert_equals(result.length, 32);
-    for (let i = 1; i <= 32; ++i) {
-        assert_equals(result[i - 1].id, i, "Autoincrement key");
-        assert_equals(result[i - 1].name, nameForId(i), "String property");
-    }
-
-    database.close();
-}, "IDBIndex.getAll() for an index on the autoincrement key");
-
-promise_test(async (testCase) => {
-    const database = await setupAutoincrementDatabase(testCase);
-
-    const transaction = database.transaction(["store"], "readonly");
-    const store = transaction.objectStore("store");
-    const index = store.index("by_id");
-    const request = index.getAllKeys();
-    const result = await promiseForRequest(testCase, request);
-    assert_equals(result.length, 32);
-    for (let i = 1; i <= 32; ++i)
-        assert_equals(result[i - 1], i, "Autoincrement key");
-
-    database.close();
-}, "IDBIndex.getAllKeys() for an index on the autoincrement key");
-
-promise_test(async (testCase) => {
-    const database = await setupAutoincrementDatabase(testCase);
-
-    const transaction = database.transaction(["store"], "readonly");
-    const store = transaction.objectStore("store");
-    const index = store.index("by_id");
-
-    for (let i = 1; i <= 32; ++i) {
-        const request = index.get(i);
-        const result = await promiseForRequest(testCase, request);
-        assert_equals(result.id, i, "autoincrement key");
-        assert_equals(result.name, nameForId(i), "string property");
-    }
-
-    database.close();
-}, "IDBIndex.get() for an index on the autoincrement key");
-
-promise_test(async (testCase) => {
-    const database = await setupAutoincrementDatabase(testCase);
-
-    const stringSortedIds = idsSortedByStringCompare();
-
-    const transaction = database.transaction(["store"], "readonly");
-    const store = transaction.objectStore("store");
-    const index = store.index("by_name");
-    const request = index.getAll();
-    const result = await promiseForRequest(testCase, request);
-    assert_equals(result.length, 32);
-    for (let i = 1; i <= 32; ++i) {
-        assert_equals(
-            result[i - 1].id,
-            stringSortedIds[i - 1],
-            "autoincrement key",
+        const txn2 = db.transaction(["books"], "readonly");
+        const objectStore2 = txn2.objectStore("books");
+        const getTitle1 = objectStore2.get("one");
+        await promiseForTransaction(testCase, txn2);
+        assert_array_equals(
+            [getTitle1.result.title],
+            ["title1"],
+            "The title should match that which was put."
         );
-        assert_equals(
-            result[i - 1].name,
-            nameForId(stringSortedIds[i - 1]),
-            "string property",
-        );
-    }
-
-    database.close();
-}, "IDBIndex.getAll() for an index not covering the autoincrement key");
+        db.close();
+    }, "Committed data can be read back out: case " + i);
+}
 
 promise_test(async (testCase) => {
-    const database = await setupAutoincrementDatabase(testCase);
+    const db = await createDatabase(testCase, (db) => {
+        createBooksStore(testCase, db);
+    });
 
-    const stringSortedIds = idsSortedByStringCompare();
-
-    const transaction = database.transaction(["store"], "readonly");
-    const store = transaction.objectStore("store");
-    const index = store.index("by_name");
-    const request = index.getAllKeys();
-    const result = await promiseForRequest(testCase, request);
-    assert_equals(result.length, 32);
-    for (let i = 1; i <= 32; ++i)
-        assert_equals(result[i - 1], stringSortedIds[i - 1], "String property");
-
-    database.close();
-}, "IDBIndex.getAllKeys() returns correct result for an index not covering " + "the autoincrement key");
-
-promise_test(async (testCase) => {
-    const database = await setupAutoincrementDatabase(testCase);
-
-    const transaction = database.transaction(["store"], "readonly");
-    const store = transaction.objectStore("store");
-    const index = store.index("by_name");
-
-    for (let i = 1; i <= 32; ++i) {
-        const request = index.get(nameForId(i));
-        const result = await promiseForRequest(testCase, request);
-        assert_equals(result.id, i, "Autoincrement key");
-        assert_equals(result.name, nameForId(i), "String property");
-    }
-
-    database.close();
-}, "IDBIndex.get() for an index not covering the autoincrement key");
+    assert_throws_js(TypeError, function () {
+        db.transaction(["books"], "readwrite", { durability: "invalid" });
+    });
+    db.close();
+}, "Invalid durability option throws a TypeError");

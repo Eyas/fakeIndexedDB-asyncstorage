@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -191,6 +201,15 @@ function keep_alive(tx, store_name) {
     return () => {
         assert_false(completed, "Transaction completed while kept alive");
         keepSpinning = false;
+    };
+}
+
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
     };
 }
 
@@ -221,7 +240,9 @@ indexeddb_test(
             "tx2.oncomplete",
         ]);
 
-        var tx1 = db.transaction("store", "readwrite");
+        var tx1 = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         tx1.onabort = t.unreached_func("transaction should commit");
         tx1.oncomplete = t.step_func(() => saw("tx1.oncomplete"));
 
@@ -231,7 +252,9 @@ indexeddb_test(
         rq1.onsuccess = t.step_func(() => {
             saw("rq1.onsuccess");
 
-            var tx2 = db.transaction("store", "readonly");
+            var tx2 = db.transaction("store", "readonly", {
+                durability: "relaxed",
+            });
             tx2.onabort = t.unreached_func("transaction should commit");
             tx2.oncomplete = t.step_func(() => saw("tx2.oncomplete"));
 
@@ -240,7 +263,7 @@ indexeddb_test(
             rq2.onerror = t.unreached_func("request should succeed");
         });
     },
-    "Transactions without requests complete in the expected order",
+    "Transactions without requests complete in the expected order"
 );
 
 indexeddb_test(
@@ -255,7 +278,9 @@ indexeddb_test(
             "tx2.oncomplete",
             "tx3.oncomplete",
         ]);
-        var tx1 = db.transaction("store", "readwrite");
+        var tx1 = db.transaction("store", "readwrite", {
+            durability: "relaxed",
+        });
         tx1.onabort = t.unreached_func("transaction should commit");
         tx1.oncomplete = t.step_func(() => saw("tx1.oncomplete"));
 
@@ -265,11 +290,15 @@ indexeddb_test(
         rq1.onsuccess = t.step_func(() => {
             saw("rq1.onsuccess");
 
-            var tx2 = db.transaction("store", "readonly");
+            var tx2 = db.transaction("store", "readonly", {
+                durability: "relaxed",
+            });
             tx2.onabort = t.unreached_func("transaction should commit");
             tx2.oncomplete = t.step_func(() => saw("tx2.oncomplete"));
 
-            var tx3 = db.transaction("store", "readonly");
+            var tx3 = db.transaction("store", "readonly", {
+                durability: "relaxed",
+            });
             tx3.onabort = t.unreached_func("transaction should commit");
             tx3.oncomplete = t.step_func(() => saw("tx3.oncomplete"));
 
@@ -278,5 +307,5 @@ indexeddb_test(
             rq2.onerror = t.unreached_func("request should succeed");
         });
     },
-    "Multiple transactions without requests complete in the expected order",
+    "Multiple transactions without requests complete in the expected order"
 );

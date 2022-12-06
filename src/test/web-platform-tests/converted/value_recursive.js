@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 function recursive_value(desc, value) {
     var db,
         t = async_test(document.title + " - " + desc);
@@ -203,27 +222,29 @@ function recursive_value(desc, value) {
         db.createObjectStore("store").add(value, 1);
 
         e.target.onsuccess = t.step_func(function (e) {
-            db.transaction("store").objectStore("store").get(1).onsuccess =
-                t.step_func(function (e) {
-                    try {
-                        var fresh_value = JSON.stringify(value);
-                        assert_unreached(
-                            "Testcase is written wrongly, must supply something recursive (that JSON won't stringify).",
-                        );
-                    } catch (e) {
-                        if (e.name == "TypeError") {
-                            try {
-                                JSON.stringify(e.target.result);
-                                assert_unreached(
-                                    "Expected a non-JSON-serializable value back, didn't get that.",
-                                );
-                            } catch (e) {
-                                t.done();
-                                return;
-                            }
-                        } else throw e;
-                    }
-                });
+            db
+                .transaction("store", "readonly", { durability: "relaxed" })
+                .objectStore("store")
+                .get(1).onsuccess = t.step_func(function (e) {
+                try {
+                    var fresh_value = JSON.stringify(value);
+                    assert_unreached(
+                        "Testcase is written wrongly, must supply something recursive (that JSON won't stringify)."
+                    );
+                } catch (e) {
+                    if (e.name == "TypeError") {
+                        try {
+                            JSON.stringify(e.target.result);
+                            assert_unreached(
+                                "Expected a non-JSON-serializable value back, didn't get that."
+                            );
+                        } catch (e) {
+                            t.done();
+                            return;
+                        }
+                    } else throw e;
+                }
+            });
         });
     };
 }

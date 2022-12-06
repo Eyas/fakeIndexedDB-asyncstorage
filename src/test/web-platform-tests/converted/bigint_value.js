@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 // BigInt and BigInt objects are supported in serialization, per
 // https://github.com/whatwg/html/pull/3480
 // This support allows them to be used as IndexedDB values.
@@ -203,7 +222,7 @@ function value_test(value, predicate, name) {
         t.step(function () {
             assert_true(
                 predicate(value),
-                "Predicate should return true for the initial value.",
+                "Predicate should return true for the initial value."
             );
         });
 
@@ -212,12 +231,12 @@ function value_test(value, predicate, name) {
 
             e.target.onsuccess = t.step_func((e) => {
                 e.target.result
-                    .transaction("store")
+                    .transaction("store", "readonly", { durability: "relaxed" })
                     .objectStore("store")
                     .get(1).onsuccess = t.step_func((e) => {
                     assert_true(
                         predicate(e.target.result),
-                        "Predicate should return true for the deserialized result.",
+                        "Predicate should return true for the deserialized result."
                     );
                     t.done();
                 });
@@ -230,7 +249,7 @@ value_test(1n, (x) => x === 1n, "primitive BigInt");
 value_test(
     Object(1n),
     (x) => typeof x === "object" && x instanceof BigInt && x.valueOf() === 1n,
-    "BigInt object",
+    "BigInt object"
 );
 value_test({ val: 1n }, (x) => x.val === 1n, "primitive BigInt inside object");
 value_test(
@@ -239,7 +258,7 @@ value_test(
         x.val.valueOf() === 1n &&
         x.val instanceof BigInt &&
         x.val.valueOf() === 1n,
-    "BigInt object inside object",
+    "BigInt object inside object"
 );
 
 // However, BigInt is not supported as an IndexedDB key; support
@@ -249,7 +268,7 @@ value_test(
 
 function invalidKey(key, name) {
     test((t) => {
-        assert_throws("DataError", () => indexedDB.cmp(0, key));
+        assert_throws_dom("DataError", () => indexedDB.cmp(0, key));
     }, "BigInts as keys in IndexedDB - " + name);
 }
 

@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,12 +204,21 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 // only
 test(function () {
     var keyRange = IDBKeyRange.only(1);
     assert_true(
         keyRange instanceof IDBKeyRange,
-        "keyRange instanceof IDBKeyRange",
+        "keyRange instanceof IDBKeyRange"
     );
     assert_equals(keyRange.lower, 1, "keyRange");
     assert_equals(keyRange.upper, 1, "keyRange");
@@ -208,47 +227,47 @@ test(function () {
 }, "IDBKeyRange.only() - returns an IDBKeyRange and the properties are set correctly");
 
 test(function () {
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.only(undefined);
         },
-        "undefined is not a valid key",
+        "undefined is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.only(null);
         },
-        "null is not a valid key",
+        "null is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.only({});
         },
-        "Object is not a valid key",
+        "Object is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.only(Symbol());
         },
-        "Symbol is not a valid key",
+        "Symbol is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.only(true);
         },
-        "boolean is not a valid key",
+        "boolean is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.only(() => {});
         },
-        "function is not a valid key",
+        "function is not a valid key"
     );
 }, "IDBKeyRange.only() - throws on invalid keys");
 
@@ -257,7 +276,7 @@ test(function () {
     var keyRange = IDBKeyRange.lowerBound(1, true);
     assert_true(
         keyRange instanceof IDBKeyRange,
-        "keyRange instanceof IDBKeyRange",
+        "keyRange instanceof IDBKeyRange"
     );
     assert_equals(keyRange.lower, 1, "keyRange.lower");
     assert_equals(keyRange.upper, undefined, "keyRange.upper");
@@ -271,47 +290,47 @@ test(function () {
 }, "IDBKeyRange.lowerBound() - 'open' parameter has correct default set");
 
 test(function () {
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.lowerBound(undefined);
         },
-        "undefined is not a valid key",
+        "undefined is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.lowerBound(null);
         },
-        "null is not a valid key",
+        "null is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.lowerBound({});
         },
-        "Object is not a valid key",
+        "Object is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.lowerBound(Symbol());
         },
-        "Symbol is not a valid key",
+        "Symbol is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.lowerBound(true);
         },
-        "boolean is not a valid key",
+        "boolean is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.lowerBound(() => {});
         },
-        "function is not a valid key",
+        "function is not a valid key"
     );
 }, "IDBKeyRange.lowerBound() - throws on invalid keys");
 
@@ -320,7 +339,7 @@ test(function () {
     var keyRange = IDBKeyRange.upperBound(1, true);
     assert_true(
         keyRange instanceof IDBKeyRange,
-        "keyRange instanceof IDBKeyRange",
+        "keyRange instanceof IDBKeyRange"
     );
     assert_equals(keyRange.lower, undefined, "keyRange.lower");
     assert_equals(keyRange.upper, 1, "keyRange.upper");
@@ -334,47 +353,47 @@ test(function () {
 }, "IDBKeyRange.upperBound() - 'open' parameter has correct default set");
 
 test(function () {
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.upperBound(undefined);
         },
-        "undefined is not a valid key",
+        "undefined is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.upperBound(null);
         },
-        "null is not a valid key",
+        "null is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.upperBound({});
         },
-        "Object is not a valid key",
+        "Object is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.upperBound(Symbol());
         },
-        "Symbol is not a valid key",
+        "Symbol is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.upperBound(true);
         },
-        "boolean is not a valid key",
+        "boolean is not a valid key"
     );
-    assert_throws(
+    assert_throws_dom(
         "DataError",
         function () {
             IDBKeyRange.upperBound(() => {});
         },
-        "function is not a valid key",
+        "function is not a valid key"
     );
 }, "IDBKeyRange.upperBound() - throws on invalid keys");
 
@@ -383,7 +402,7 @@ test(function () {
     var keyRange = IDBKeyRange.bound(1, 2, true, true);
     assert_true(
         keyRange instanceof IDBKeyRange,
-        "keyRange instanceof IDBKeyRange",
+        "keyRange instanceof IDBKeyRange"
     );
     assert_equals(keyRange.lower, 1, "keyRange");
     assert_equals(keyRange.upper, 2, "keyRange");

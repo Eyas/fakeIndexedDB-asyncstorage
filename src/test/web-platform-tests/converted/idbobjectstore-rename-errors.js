@@ -64,7 +64,7 @@ function migrateDatabase(testCase, newVersion, migrationCallback) {
         testCase,
         databaseName(testCase),
         newVersion,
-        migrationCallback,
+        migrationCallback
     );
 }
 
@@ -83,7 +83,7 @@ function migrateNamedDatabase(
     testCase,
     databaseName,
     newVersion,
-    migrationCallback,
+    migrationCallback
 ) {
     // We cannot use eventWatcher.wait_for('upgradeneeded') here, because
     // the versionchange transaction auto-commits before the Promise's then
@@ -114,8 +114,8 @@ function migrateNamedDatabase(
                         reject(
                             new Error(
                                 "indexedDB.open should not succeed for an aborted " +
-                                    "versionchange transaction",
-                            ),
+                                    "versionchange transaction"
+                            )
                         );
                 });
                 shouldBeAborted = true;
@@ -126,7 +126,7 @@ function migrateNamedDatabase(
             const callbackResult = migrationCallback(
                 database,
                 transaction,
-                request,
+                request
             );
             if (!shouldBeAborted) {
                 request.onerror = null;
@@ -137,7 +137,7 @@ function migrateNamedDatabase(
             // requestEventPromise needs to be the last promise in the chain, because
             // we want the event that it resolves to.
             resolve(
-                Promise.resolve(callbackResult).then(() => requestEventPromise),
+                Promise.resolve(callbackResult).then(() => requestEventPromise)
             );
         });
         request.onerror = (event) => reject(event.target.error);
@@ -149,8 +149,8 @@ function migrateNamedDatabase(
             reject(
                 new Error(
                     "indexedDB.open should not succeed without creating a " +
-                        "versionchange transaction",
-                ),
+                        "versionchange transaction"
+                )
             );
         };
     }).then((databaseOrError) => {
@@ -235,7 +235,17 @@ const createBooksStore = (testCase, database) => {
     });
     store.createIndex("by_author", "author");
     store.createIndex("by_title", "title", { unique: true });
-    for (let record of BOOKS_RECORD_DATA) store.put(record);
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
+    return store;
+};
+
+// Creates a 'books' object store whose contents closely resembles the first
+// example in the IndexedDB specification, just without autoincrementing.
+const createBooksStoreWithoutAutoIncrement = (testCase, database) => {
+    const store = database.createObjectStore("books", { keyPath: "isbn" });
+    store.createIndex("by_author", "author");
+    store.createIndex("by_title", "title", { unique: true });
+    for (const record of BOOKS_RECORD_DATA) store.put(record);
     return store;
 };
 
@@ -258,7 +268,7 @@ function checkStoreIndexes(testCase, store, errorMessage) {
     assert_array_equals(
         store.indexNames,
         ["by_author", "by_title"],
-        errorMessage,
+        errorMessage
     );
     const authorIndex = store.index("by_author");
     const titleIndex = store.index("by_title");
@@ -401,11 +411,11 @@ promise_test((testCase) => {
             migrateDatabase(testCase, 2, (database, transaction) => {
                 const store = transaction.objectStore("books");
                 database.deleteObjectStore("books");
-                assert_throws(
+                assert_throws_dom(
                     "InvalidStateError",
-                    () => (store.name = "renamed_books"),
+                    () => (store.name = "renamed_books")
                 );
-            }),
+            })
         )
         .then((database) => {
             database.close();
@@ -416,11 +426,13 @@ promise_test((testCase) => {
     return createDatabase(testCase, (database, transaction) => {
         createBooksStore(testCase, database);
     }).then((database) => {
-        const transaction = database.transaction("books", "readonly");
+        const transaction = database.transaction("books", "readonly", {
+            durability: "relaxed",
+        });
         const store = transaction.objectStore("books");
-        assert_throws(
+        assert_throws_dom(
             "InvalidStateError",
-            () => (store.name = "renamed_books"),
+            () => (store.name = "renamed_books")
         );
         database.close();
     });
@@ -430,12 +442,14 @@ promise_test((testCase) => {
     return createDatabase(testCase, (database, transaction) => {
         createBooksStore(testCase, database);
     }).then((database) => {
-        const transaction = database.transaction("books", "readwrite");
+        const transaction = database.transaction("books", "readwrite", {
+            durability: "relaxed",
+        });
         const store = transaction.objectStore("books");
 
-        assert_throws(
+        assert_throws_dom(
             "InvalidStateError",
-            () => (store.name = "renamed_books"),
+            () => (store.name = "renamed_books")
         );
         database.close();
     });
@@ -446,7 +460,7 @@ promise_test((testCase) => {
     return createDatabase(testCase, (database, transaction) => {
         bookStore = createBooksStore(testCase, database);
     }).then((database) => {
-        assert_throws("TransactionInactiveError", () => {
+        assert_throws_dom("TransactionInactiveError", () => {
             bookStore.name = "renamed_books";
         });
         database.close();
@@ -464,32 +478,34 @@ promise_test((testCase) => {
         .then(() =>
             migrateDatabase(testCase, 2, (database, transaction) => {
                 const store = transaction.objectStore("books");
-                assert_throws(
+                assert_throws_dom(
                     "ConstraintError",
-                    () => (store.name = "not_books"),
+                    () => (store.name = "not_books")
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books", "not_books"],
                     "A store rename that throws an exception should not change the " +
-                        "store's IDBDatabase.objectStoreNames",
+                        "store's IDBDatabase.objectStoreNames"
                 );
-            }),
+            })
         )
         .then((database) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["books", "not_books"],
                 "Committing a transaction with a failed store rename attempt " +
-                    "should not change the store's IDBDatabase.objectStoreNames",
+                    "should not change the store's IDBDatabase.objectStoreNames"
             );
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             return checkStoreContents(
                 testCase,
                 store,
                 "Committing a transaction with a failed rename attempt should " +
-                    "not change the store's contents",
+                    "not change the store's contents"
             ).then(() => database.close());
         });
 }, "IndexedDB object store rename to the name of another store throws");
@@ -504,39 +520,42 @@ promise_test((testCase) => {
         .then(() =>
             migrateDatabase(testCase, 2, (database, transaction) => {
                 const store = transaction.objectStore("books");
-                assert_throws(
-                    { name: "Custom stringifying error" },
+                var exception = { name: "Custom stringifying error" };
+                assert_throws_exactly(
+                    exception,
                     () => {
                         store.name = {
                             toString: () => {
-                                throw { name: "Custom stringifying error" };
+                                throw exception;
                             },
                         };
                     },
-                    "IDBObjectStore rename should re-raise toString() exception",
+                    "IDBObjectStore rename should re-raise toString() exception"
                 );
                 assert_array_equals(
                     database.objectStoreNames,
                     ["books"],
                     "A store rename that throws an exception should not change the " +
-                        "store's IDBDatabase.objectStoreNames",
+                        "store's IDBDatabase.objectStoreNames"
                 );
-            }),
+            })
         )
         .then((database) => {
             assert_array_equals(
                 database.objectStoreNames,
                 ["books"],
                 "Committing a transaction with a failed store rename attempt " +
-                    "should not change the store's IDBDatabase.objectStoreNames",
+                    "should not change the store's IDBDatabase.objectStoreNames"
             );
-            const transaction = database.transaction("books", "readonly");
+            const transaction = database.transaction("books", "readonly", {
+                durability: "relaxed",
+            });
             const store = transaction.objectStore("books");
             return checkStoreContents(
                 testCase,
                 store,
                 "Committing a transaction with a failed rename attempt should " +
-                    "not change the store's contents",
+                    "not change the store's contents"
             ).then(() => database.close());
         });
 }, "IndexedDB object store rename handles exceptions when stringifying names");

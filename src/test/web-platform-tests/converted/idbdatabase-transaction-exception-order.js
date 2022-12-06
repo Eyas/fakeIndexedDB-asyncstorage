@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,23 +204,32 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 indexeddb_test(
     (t, db) => {
         db.createObjectStore("s");
     },
     (t, db) => {
         db.close();
-        assert_throws(
+        assert_throws_dom(
             "InvalidStateError",
             () => {
                 db.transaction("no-such-store");
             },
             '"Connection is closed" check (InvalidStateError) should precede ' +
-                '"store names" check (NotFoundError)',
+                '"store names" check (NotFoundError)'
         );
         t.done();
     },
-    "IDBDatabase.transaction exception order: InvalidStateError vs. NotFoundError",
+    "IDBDatabase.transaction exception order: InvalidStateError vs. NotFoundError"
 );
 
 indexeddb_test(
@@ -219,17 +238,35 @@ indexeddb_test(
     },
     (t, db) => {
         db.close();
-        assert_throws(
+        assert_throws_dom(
             "InvalidStateError",
             () => {
                 db.transaction([]);
             },
             '"Connection is closed" check (InvalidStateError) should precede ' +
-                '"stores is empty" check (InvalidAccessError)',
+                '"stores is empty" check (InvalidAccessError)'
         );
         t.done();
     },
-    "IDBDatabase.transaction exception order: InvalidStateError vs. InvalidAccessError",
+    "IDBDatabase.transaction exception order: InvalidStateError vs. InvalidAccessError"
+);
+
+// Verify that the invalid mode check actually throws an exception
+indexeddb_test(
+    (t, db) => {
+        db.createObjectStore("s");
+    },
+    (t, db) => {
+        assert_throws_js(
+            TypeError,
+            () => {
+                db.transaction("s", "versionchange");
+            },
+            '"invalid mode" check should throw TypeError'
+        );
+        t.done();
+    },
+    "IDBDatabase.transaction throws exception on invalid mode"
 );
 
 indexeddb_test(
@@ -237,15 +274,15 @@ indexeddb_test(
         db.createObjectStore("s");
     },
     (t, db) => {
-        assert_throws(
+        assert_throws_dom(
             "NotFoundError",
             () => {
                 db.transaction("no-such-store", "versionchange");
             },
             '"No such store" check (NotFoundError) should precede ' +
-                '"invalid mode" check (TypeError)',
+                '"invalid mode" check (TypeError)'
         );
         t.done();
     },
-    "IDBDatabase.transaction exception order: NotFoundError vs. TypeError",
+    "IDBDatabase.transaction exception order: NotFoundError vs. TypeError"
 );

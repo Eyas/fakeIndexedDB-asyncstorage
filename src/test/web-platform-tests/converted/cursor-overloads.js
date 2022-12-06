@@ -17,7 +17,7 @@ function fail(test, desc) {
     return test.step_func(function (e) {
         if (e && e.message && e.target.error)
             assert_unreached(
-                desc + " (" + e.target.error.name + ": " + e.message + ")",
+                desc + " (" + e.target.error.name + ": " + e.message + ")"
             );
         else if (e && e.message)
             assert_unreached(desc + " (" + e.message + ")");
@@ -68,7 +68,7 @@ function createdb_for_multiple_tests(dbname, version) {
                     this.db.onabort = fail(test, "unexpected db.abort");
                     this.db.onversionchange = fail(
                         test,
-                        "unexpected db.versionchange",
+                        "unexpected db.versionchange"
                     );
                 }
             });
@@ -102,6 +102,16 @@ function assert_key_equals(actual, expected, description) {
     assert_equals(indexedDB.cmp(actual, expected), 0, description);
 }
 
+// Usage:
+//   indexeddb_test(
+//     (test_object, db_connection, upgrade_tx, open_request) => {
+//        // Database creation logic.
+//     },
+//     (test_object, db_connection, open_request) => {
+//        // Test logic.
+//        test_object.done();
+//     },
+//     'Test case description');
 function indexeddb_test(upgrade_func, open_func, description, options) {
     async_test(function (t) {
         options = Object.assign({ upgrade_will_abort: false }, options);
@@ -164,7 +174,7 @@ function is_transaction_active(tx, store_name) {
             ex.name,
             "TransactionInactiveError",
             "Active check should either not throw anything, or throw " +
-                "TransactionInactiveError",
+                "TransactionInactiveError"
         );
         return false;
     }
@@ -194,6 +204,15 @@ function keep_alive(tx, store_name) {
     };
 }
 
+// Returns a new function. After it is called |count| times, |func|
+// will be called.
+function barrier_func(count, func) {
+    let n = 0;
+    return () => {
+        if (++n === count) func();
+    };
+}
+
 var db, trans, store, index;
 var t = async_test();
 
@@ -208,7 +227,7 @@ request.onupgradeneeded = function (e) {
 };
 
 function verifyOverloads() {
-    trans = db.transaction("store");
+    trans = db.transaction("store", "readonly", { durability: "relaxed" });
     store = trans.objectStore("store");
     index = store.index("index");
 
@@ -222,19 +241,19 @@ function verifyOverloads() {
     checkCursorDirection("store.openCursor(IDBKeyRange.only(0))", "next");
     checkCursorDirection(
         "store.openCursor(IDBKeyRange.only(0), 'next')",
-        "next",
+        "next"
     );
     checkCursorDirection(
         "store.openCursor(IDBKeyRange.only(0), 'nextunique')",
-        "nextunique",
+        "nextunique"
     );
     checkCursorDirection(
         "store.openCursor(IDBKeyRange.only(0), 'prev')",
-        "prev",
+        "prev"
     );
     checkCursorDirection(
         "store.openCursor(IDBKeyRange.only(0), 'prevunique')",
-        "prevunique",
+        "prevunique"
     );
 
     checkCursorDirection("index.openCursor()", "next");
@@ -247,19 +266,19 @@ function verifyOverloads() {
     checkCursorDirection("index.openCursor(IDBKeyRange.only(0))", "next");
     checkCursorDirection(
         "index.openCursor(IDBKeyRange.only(0), 'next')",
-        "next",
+        "next"
     );
     checkCursorDirection(
         "index.openCursor(IDBKeyRange.only(0), 'nextunique')",
-        "nextunique",
+        "nextunique"
     );
     checkCursorDirection(
         "index.openCursor(IDBKeyRange.only(0), 'prev')",
-        "prev",
+        "prev"
     );
     checkCursorDirection(
         "index.openCursor(IDBKeyRange.only(0), 'prevunique')",
-        "prevunique",
+        "prevunique"
     );
 
     checkCursorDirection("index.openKeyCursor()", "next");
@@ -272,19 +291,19 @@ function verifyOverloads() {
     checkCursorDirection("index.openKeyCursor(IDBKeyRange.only(0))", "next");
     checkCursorDirection(
         "index.openKeyCursor(IDBKeyRange.only(0), 'next')",
-        "next",
+        "next"
     );
     checkCursorDirection(
         "index.openKeyCursor(IDBKeyRange.only(0), 'nextunique')",
-        "nextunique",
+        "nextunique"
     );
     checkCursorDirection(
         "index.openKeyCursor(IDBKeyRange.only(0), 'prev')",
-        "prev",
+        "prev"
     );
     checkCursorDirection(
         "index.openKeyCursor(IDBKeyRange.only(0), 'prevunique')",
-        "prevunique",
+        "prevunique"
     );
 
     t.done();
@@ -296,12 +315,12 @@ function checkCursorDirection(statement, direction) {
         assert_not_equals(
             event.target.result,
             null,
-            "Check the result is not null",
+            "Check the result is not null"
         );
         assert_equals(
             event.target.result.direction,
             direction,
-            "Check the result direction",
+            "Check the result direction"
         );
     };
 }
