@@ -39,10 +39,6 @@ const skip = [
     "idbcursor-delete-exception-order.js",
     "idbcursor-update-exception-order.js",
 
-    // No iframe in Node.js.
-    "idbfactory-deleteDatabase-opaque-origin.js",
-    "idbfactory-open-opaque-origin.js",
-
     // Mostly works, but subtlely wrong behavior when renaming a newly-created index/store and then aborting the upgrade
     // transaction (this has roughly 0 real world impact, but could be indicative of other problems in fake-indexeddb).
     "idbindex-rename-abort.js",
@@ -70,12 +66,26 @@ const skip = [
     // Did not investigate in great detail.
     "bindings-inject-keys-bypass-setters.js",
     "bindings-inject-values-bypass-setters.js",
-    "idbfactory-databases-opaque-origin.js",
     "request-event-ordering.js",
     "transaction-abort-generator-revert.js",
     "transaction-lifetime-empty.js",
     "upgrade-transaction-lifecycle-backend-aborted.js",
     "upgrade-transaction-lifecycle-user-aborted.js",
+
+    // References to DOM functions.
+    "database-names-by-origin.js",
+    "idbfactory-databases-opaque-origin.js",
+    "idbfactory-deleteDatabase-opaque-origin.js",
+    "idbfactory-open-opaque-origin.js",
+    "idbfactory-origin-isolation.js",
+    "idbindex-cross-realm-methods.js",
+    "idbobjectstore-cross-realm-methods.js",
+    "ready-state-destroyed-execution-context.js",
+    "structured-clone.any.js",
+    "file_support.sub.js",
+    "idb-partitioned-basic.tentative.sub.js",
+    "idb-partitioned-coverage.tentative.sub.js",
+    "idb-partitioned-persistence.tentative.sub.js",
 ];
 
 const filenames = glob.sync("/**/*.js", { root: testFolder });

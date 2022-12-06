@@ -1,4 +1,4 @@
-import assert from "node:assert";
+import assert, { AssertionError } from "node:assert";
 import { inject } from "../../../build/esm/inject.js";
 import { storage } from "../../../build/esm/fakeStorage.js";
 import FakeEvent from "../../../build/esm/lib/FakeEvent.js";
@@ -61,6 +61,103 @@ const assert_readonly = (object, property_name, description) => {
 
 const assert_throws = (errName, block, message) =>
     assert.throws(block, new RegExp(errName), message);
+
+const assert_throws_dom = (
+    type,
+    funcOrConstructor,
+    descriptionOrFunc,
+    maybeDescription
+) => {
+    let constructor, func, description;
+    if (funcOrConstructor.name === "DOMException") {
+        constructor = funcOrConstructor;
+        func = descriptionOrFunc;
+        description = maybeDescription;
+    } else {
+        constructor = self.DOMException;
+        func = funcOrConstructor;
+        description = descriptionOrFunc;
+        assert.equal(
+            maybeDescription,
+            undefined,
+            "Too many args pased to no-constructor version of assert_throws_dom"
+        );
+    }
+
+    assert.throws(
+        func,
+        (error) => {
+            if (error instanceof AssertionError) {
+                console.error("Saw ", error);
+                return false;
+            }
+
+            if (typeof type === "string") {
+                if (type in codename_name_map) type = codename_name_map[type];
+
+                if (error.name !== type) {
+                    console.error(
+                        `Saw unexpected error.name '${error.name}', expecting '${type}'`
+                    );
+                    return false;
+                }
+            }
+
+            if (typeof type === "number") {
+                const codename = Object.entries(DOMException)
+                    .find(([, code]) => code === type)
+                    .map(([code_name]) => code_name);
+                if (!codename)
+                    assert.fail(
+                        `Type ${type} is not one of the valid DOMException codenames.`
+                    );
+                const name = codename_name_map[codename];
+                if (error.name !== type) {
+                    console.error(
+                        `Saw unexpected error.name '${error.name}', expecting '${name}'`
+                    );
+                    return false;
+                }
+            }
+
+            if (constructor && error.constructor !== constructor) {
+                console.error(
+                    "Constructor mismatch between thrown",
+                    error.constructor,
+                    "Expected: ",
+                    constructor
+                );
+                return false;
+            }
+        },
+        description
+    );
+};
+
+const codename_name_map = {
+    INDEX_SIZE_ERR: "IndexSizeError",
+    HIERARCHY_REQUEST_ERR: "HierarchyRequestError",
+    WRONG_DOCUMENT_ERR: "WrongDocumentError",
+    INVALID_CHARACTER_ERR: "InvalidCharacterError",
+    NO_MODIFICATION_ALLOWED_ERR: "NoModificationAllowedError",
+    NOT_FOUND_ERR: "NotFoundError",
+    NOT_SUPPORTED_ERR: "NotSupportedError",
+    INUSE_ATTRIBUTE_ERR: "InUseAttributeError",
+    INVALID_STATE_ERR: "InvalidStateError",
+    SYNTAX_ERR: "SyntaxError",
+    INVALID_MODIFICATION_ERR: "InvalidModificationError",
+    NAMESPACE_ERR: "NamespaceError",
+    INVALID_ACCESS_ERR: "InvalidAccessError",
+    TYPE_MISMATCH_ERR: "TypeMismatchError",
+    SECURITY_ERR: "SecurityError",
+    NETWORK_ERR: "NetworkError",
+    ABORT_ERR: "AbortError",
+    URL_MISMATCH_ERR: "URLMismatchError",
+    QUOTA_EXCEEDED_ERR: "QuotaExceededError",
+    TIMEOUT_ERR: "TimeoutError",
+    INVALID_NODE_TYPE_ERR: "InvalidNodeTypeError",
+    DATA_CLONE_ERR: "DataCloneError",
+};
 
 const assert_true = (...args) => assert.ok(...args);
 
@@ -445,6 +542,7 @@ const addToGlobal = {
     assert_not_equals,
     assert_readonly,
     assert_throws,
+    assert_throws_dom,
     assert_true,
     assert_unreached,
     async_test,
