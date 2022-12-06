@@ -3,6 +3,12 @@ import { Key } from "./types.js";
 
 // https://w3c.github.io/IndexedDB/#convert-a-value-to-a-input
 const valueToKey = (input: any, seen?: Set<object>): Key | Key[] => {
+    try {
+        structuredClone(input);
+    } catch (e) {
+        throw DataError();
+    }
+
     if (typeof input === "number") {
         if (isNaN(input)) {
             throw DataError();
