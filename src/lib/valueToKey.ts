@@ -6,7 +6,14 @@ const valueToKey = (input: any, seen?: Set<object>): Key | Key[] => {
     try {
         structuredClone(input);
     } catch (e) {
-        throw DataError();
+        if (
+            e instanceof DOMException &&
+            (e.name === "DataCloneError" ||
+                e.code === DOMException.DATA_CLONE_ERR)
+        ) {
+            throw DataError();
+        }
+        throw e;
     }
 
     if (typeof input === "number") {
