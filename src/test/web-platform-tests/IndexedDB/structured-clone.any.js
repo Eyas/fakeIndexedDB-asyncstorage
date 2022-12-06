@@ -1,7 +1,7 @@
 // META: title=Indexed DB and Structured Serializing/Deserializing
 // META: timeout=long
 // META: script=resources/support-promises.js
-// META: script=/common/subset-tests.js
+// META: script=../common/subset-tests.js
 // META: variant=?1-20
 // META: variant=?21-40
 // META: variant=?41-60
