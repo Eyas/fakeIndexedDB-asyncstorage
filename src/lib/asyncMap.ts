@@ -236,11 +236,11 @@ export class AsyncStringMap2<V> {
     }
 
     async clear(): Promise<void> {
-        await this.storage.removeItem(keysKey(this.keyPrefix));
-        const toDelete = Array.from(this.impl.keys()).map((key) =>
+        const task1 = this.storage.removeItem(keysKey(this.keyPrefix));
+        const rest = Array.from(this.impl.keys()).map((key) =>
             this.storage.removeItem(valueKey(this.keyPrefix, key))
         );
-        await Promise.all(toDelete);
+        await Promise.all([task1, ...rest]);
         this.impl.clear();
     }
 
