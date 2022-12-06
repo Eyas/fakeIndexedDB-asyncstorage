@@ -23,7 +23,7 @@ export type EventType =
 
 export type FDBCursorDirection = "next" | "nextunique" | "prev" | "prevunique";
 
-export type KeyPath = string | string[];
+export type KeyPath = string | { toString(): string } | string[];
 
 export type Key = any;
 

@@ -250,7 +250,7 @@ function getall_test(func, name) {
                 multiEntry: true,
             });
             alphabet.forEach(function (letter) {
-                attrs = [];
+                let attrs = [];
                 if (["a", "e", "i", "o", "u"].indexOf(letter) != -1)
                     attrs.push("vowel");
                 else attrs.push("consonant");

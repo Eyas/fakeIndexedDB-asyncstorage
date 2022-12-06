@@ -18,7 +18,6 @@ global.document = {
     // this will instead use another object that also can't be used as a key.
     getElementsByTagName: () => Math,
 };
-global.DOMException = Error; // Kind of cheating for error-attributes.js
 global.location = {
     location: {},
 };
@@ -62,6 +61,17 @@ const assert_readonly = (object, property_name, description) => {
 const assert_throws = (errName, block, message) =>
     assert.throws(block, new RegExp(errName), message);
 
+const assert_throws_js = (constructor, func, description) =>
+    assert.throws(func, constructor, description);
+
+const assert_throws_exactly = (expected, func, description) => {
+    try {
+        func();
+    } catch (actual) {
+        assert.equal(actual, expected, description);
+    }
+};
+
 const assert_throws_dom = (
     type,
     funcOrConstructor,
@@ -74,7 +84,7 @@ const assert_throws_dom = (
         func = descriptionOrFunc;
         description = maybeDescription;
     } else {
-        constructor = self.DOMException;
+        constructor = DOMException;
         func = funcOrConstructor;
         description = descriptionOrFunc;
         assert.equal(
@@ -129,6 +139,8 @@ const assert_throws_dom = (
                 );
                 return false;
             }
+
+            return true;
         },
         description
     );
@@ -172,7 +184,7 @@ class AsyncTest {
                 this.completed = true;
                 throw new Error("Timed out!");
             }
-        }, 60 * 1000);
+        }, 15 * 1000);
     }
 
     complete() {
@@ -215,7 +227,7 @@ class AsyncTest {
 
     step_func_done(fn) {
         return (...args) => {
-            fn.apply(this, args);
+            if (fn) fn.apply(this, args);
             this.done();
         };
     }
@@ -292,7 +304,8 @@ function EventWatcher(test, watchedNode, eventTypes) {
                 waitingFor.types[0] +
                 " event, but got " +
                 evt.type +
-                " event instead"
+                " event instead.\n" +
+                evt
         );
         if (waitingFor.types.length > 1) {
             // Pop first event from array
@@ -521,9 +534,7 @@ const promise_test = (func, name, properties) => {
     });
 };
 
-const setup = (...args) => {
-    console.log("Setup", ...args);
-};
+const setup = (...args) => {};
 
 const step_timeout = (fn, timeout, ...args) => {
     return setTimeout(() => {
@@ -542,6 +553,8 @@ const addToGlobal = {
     assert_not_equals,
     assert_readonly,
     assert_throws,
+    assert_throws_js,
+    assert_throws_exactly,
     assert_throws_dom,
     assert_true,
     assert_unreached,

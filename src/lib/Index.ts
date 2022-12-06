@@ -129,7 +129,7 @@ class Index {
             if (this.unique) {
                 const existingRecord = await this.records.get(indexKey);
                 if (existingRecord) {
-                    throw new ConstraintError();
+                    throw ConstraintError();
                 }
             }
         } else {
@@ -139,7 +139,7 @@ class Index {
                         individualIndexKey
                     );
                     if (existingRecord) {
-                        throw new ConstraintError();
+                        throw ConstraintError();
                     }
                 }
             }
@@ -176,7 +176,7 @@ class Index {
                     this.initialized = true;
                 } catch (err) {
                     transaction._runImmediateRollback();
-                    await transaction._abort(err.name);
+                    await transaction._abort(err);
                 }
             },
             source: null,

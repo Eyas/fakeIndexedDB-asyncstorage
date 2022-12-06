@@ -41,7 +41,7 @@ class FDBKeyRange {
 
         const cmpResult = cmp(lower, upper);
         if (cmpResult === 1 || (cmpResult === 0 && (lowerOpen || upperOpen))) {
-            throw new DataError();
+            throw DataError();
         }
 
         lower = valueToKey(lower);

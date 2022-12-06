@@ -18,7 +18,7 @@ const getType = (x: any) => {
         return "Binary";
     }
 
-    throw new DataError();
+    throw DataError();
 };
 
 // https://w3c.github.io/IndexedDB/#compare-two-keys

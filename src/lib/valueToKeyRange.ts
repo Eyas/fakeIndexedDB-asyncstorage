@@ -10,7 +10,7 @@ const valueToKeyRange = (value: any, nullDisallowedFlag: boolean = false) => {
 
     if (value === null || value === undefined) {
         if (nullDisallowedFlag) {
-            throw new DataError();
+            throw DataError();
         }
         return new FDBKeyRange(undefined, undefined, false, false);
     }

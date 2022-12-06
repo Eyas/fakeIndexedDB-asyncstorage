@@ -5,13 +5,13 @@ import { Key } from "./types.js";
 const valueToKey = (input: any, seen?: Set<object>): Key | Key[] => {
     if (typeof input === "number") {
         if (isNaN(input)) {
-            throw new DataError();
+            throw DataError();
         }
         return input;
     } else if (input instanceof Date) {
         const ms = input.valueOf();
         if (isNaN(ms)) {
-            throw new DataError();
+            throw DataError();
         }
         return new Date(ms);
     } else if (typeof input === "string") {
@@ -34,7 +34,7 @@ const valueToKey = (input: any, seen?: Set<object>): Key | Key[] => {
         if (seen === undefined) {
             seen = new Set();
         } else if (seen.has(input)) {
-            throw new DataError();
+            throw DataError();
         }
         seen.add(input);
 
@@ -42,7 +42,7 @@ const valueToKey = (input: any, seen?: Set<object>): Key | Key[] => {
         for (let i = 0; i < input.length; i++) {
             const hop = input.hasOwnProperty(i);
             if (!hop) {
-                throw new DataError();
+                throw DataError();
             }
             const entry = input[i];
             const key = valueToKey(entry, seen);
@@ -50,7 +50,7 @@ const valueToKey = (input: any, seen?: Set<object>): Key | Key[] => {
         }
         return keys;
     } else {
-        throw new DataError();
+        throw DataError();
     }
 };
 

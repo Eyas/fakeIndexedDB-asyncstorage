@@ -19,6 +19,7 @@ import extractKey from "./lib/extractKey.js";
 import FakeDOMStringList from "./lib/FakeDOMStringList.js";
 import Index from "./lib/Index.js";
 import ObjectStore from "./lib/ObjectStore.js";
+import { shallowCopy } from "./lib/shallowCopy.js";
 import { FDBCursorDirection, Key, KeyPath, Value } from "./lib/types.js";
 import validateKeyPath from "./lib/validateKeyPath.js";
 import valueToKey from "./lib/valueToKey.js";
@@ -26,11 +27,11 @@ import valueToKeyRange from "./lib/valueToKeyRange.js";
 
 const confirmActiveTransaction = (objectStore: FDBObjectStore) => {
     if (objectStore._rawObjectStore.deleted) {
-        throw new InvalidStateError();
+        throw InvalidStateError();
     }
 
     if (objectStore.transaction._state !== "active") {
-        throw new TransactionInactiveError();
+        throw TransactionInactiveError();
     }
 };
 
@@ -42,16 +43,19 @@ const buildRecordAddPut = (
     confirmActiveTransaction(objectStore);
 
     if (objectStore.transaction.mode === "readonly") {
-        throw new ReadOnlyError();
+        throw ReadOnlyError();
     }
 
     if (objectStore.keyPath !== null) {
         if (key !== undefined) {
-            throw new DataError();
+            throw DataError();
         }
     }
 
+    const savedTxnState = objectStore.transaction._state;
+    objectStore.transaction._state = "inactive";
     const clone = structuredClone(value);
+    objectStore.transaction._state = savedTxnState;
 
     if (objectStore.keyPath !== null) {
         const tempKey = extractKey(objectStore.keyPath, clone);
@@ -60,9 +64,9 @@ const buildRecordAddPut = (
             valueToKey(tempKey);
         } else {
             if (!objectStore._rawObjectStore.keyGenerator) {
-                throw new DataError();
+                throw DataError();
             } else if (!canInjectKey(objectStore.keyPath, clone)) {
-                throw new DataError();
+                throw DataError();
             }
         }
     }
@@ -72,7 +76,7 @@ const buildRecordAddPut = (
         objectStore._rawObjectStore.keyGenerator === null &&
         key === undefined
     ) {
-        throw new DataError();
+        throw DataError();
     }
 
     if (key !== undefined) {
@@ -106,7 +110,10 @@ class FDBObjectStore {
         this._rawObjectStore = rawObjectStore;
 
         this._name = rawObjectStore.name;
-        this.keyPath = rawObjectStore.keyPath;
+        this.keyPath =
+            rawObjectStore.keyPath === null
+                ? null
+                : shallowCopy(rawObjectStore.keyPath);
         this.autoIncrement = rawObjectStore.autoIncrement;
         this.transaction = transaction;
         this.indexNames = new FakeDOMStringList(
@@ -123,7 +130,7 @@ class FDBObjectStore {
         const transaction = this.transaction;
 
         if (!transaction.db._runningVersionchangeTransaction) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         confirmActiveTransaction(this);
@@ -135,7 +142,7 @@ class FDBObjectStore {
         }
 
         if (this._rawObjectStore.rawDatabase.rawObjectStores.has(name)) {
-            throw new ConstraintError();
+            throw ConstraintError();
         }
 
         const oldName = this._name;
@@ -236,7 +243,7 @@ class FDBObjectStore {
         confirmActiveTransaction(this);
 
         if (this.transaction.mode === "readonly") {
-            throw new ReadOnlyError();
+            throw ReadOnlyError();
         }
 
         if (!(key instanceof FDBKeyRange)) {
@@ -334,7 +341,7 @@ class FDBObjectStore {
         confirmActiveTransaction(this);
 
         if (this.transaction.mode === "readonly") {
-            throw new ReadOnlyError();
+            throw ReadOnlyError();
         }
 
         return this.transaction._execRequestAsync({
@@ -424,19 +431,19 @@ class FDBObjectStore {
                 : false;
 
         if (this.transaction.mode !== "versionchange") {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         confirmActiveTransaction(this);
 
         if (this.indexNames.contains(name)) {
-            throw new ConstraintError();
+            throw ConstraintError();
         }
 
         validateKeyPath(keyPath);
 
         if (Array.isArray(keyPath) && multiEntry) {
-            throw new InvalidAccessError();
+            throw InvalidAccessError();
         }
 
         // The index that is requested to be created can contain constraints on the data allowed in the index's
@@ -486,7 +493,7 @@ class FDBObjectStore {
             this.transaction._state === "finished" ||
             this.transaction._state === "aborting"
         ) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         const index = this._indexesCache.get(name);
@@ -496,7 +503,7 @@ class FDBObjectStore {
 
         const rawIndex = this._rawObjectStore.rawIndexes.get(name);
         if (!this.indexNames.contains(name) || rawIndex === undefined) {
-            throw new NotFoundError();
+            throw NotFoundError();
         }
 
         const index2 = new FDBIndex(this, rawIndex);
@@ -511,14 +518,14 @@ class FDBObjectStore {
         }
 
         if (this.transaction.mode !== "versionchange") {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         confirmActiveTransaction(this);
 
         const rawIndex = this._rawObjectStore.rawIndexes.get(name);
         if (rawIndex === undefined) {
-            throw new NotFoundError();
+            throw NotFoundError();
         }
 
         this.transaction._rollbackLog.immediate.push(() => {

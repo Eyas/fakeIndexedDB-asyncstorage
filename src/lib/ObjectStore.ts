@@ -204,7 +204,7 @@ class ObjectStore {
                 let i = 0; // Just to run the loop at least once
                 while (i >= 0) {
                     if (typeof object !== "object") {
-                        throw new DataError();
+                        throw DataError();
                     }
 
                     i = remainingKeyPath.indexOf(".");
@@ -234,7 +234,7 @@ class ObjectStore {
         const existingRecord = await this.records.get(newRecord.key);
         if (existingRecord) {
             if (noOverwrite) {
-                throw new ConstraintError();
+                throw ConstraintError();
             }
             await this.deleteRecord(newRecord.key, rollbackLog);
         }

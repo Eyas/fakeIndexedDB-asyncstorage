@@ -12,7 +12,7 @@ indexeddb_test(
         const blobBContent = "Blob B content";
         const blobA = new Blob([blobAContent], { type: "text/plain" });
         const blobB = new Blob([blobBContent], { type: "text/plain" });
-        value = { a0: blobA, a1: blobA, b0: blobB };
+        let value = { a0: blobA, a1: blobA, b0: blobB };
 
         const tx = db.transaction("store", "readwrite", {
             durability: "relaxed",

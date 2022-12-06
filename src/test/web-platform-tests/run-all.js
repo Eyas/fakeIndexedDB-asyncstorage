@@ -9,7 +9,7 @@ let passed = 0;
 const failed = [];
 let skipped = 0;
 
-const skip = [
+const skip = new Set([
     // Maximum call stack size exceeded, possibly due to the promise resolution microtask not taking precedence when it
     // should (keep_alive not working).
     "event-dispatch-active-flag.js",
@@ -86,12 +86,37 @@ const skip = [
     "idb-partitioned-basic.tentative.sub.js",
     "idb-partitioned-coverage.tentative.sub.js",
     "idb-partitioned-persistence.tentative.sub.js",
-];
+    "resources/idb-partitioned-persistence-iframe.tentative.js",
+    "resources/idb-partitioned-basic-iframe.tentative.js",
+    "resources/cross-origin-helper-frame.js",
+    "resources/idbfactory-origin-isolation-iframe.js",
+
+    // XMLHttpRequest
+    "blob-contenttype.any.js",
+
+    // Navigator
+    "storage-buckets.https.any.js",
+
+    // References to origins, etc.
+    "serialize-sharedarraybuffer-throws.https.js",
+
+    // IDB(Index|ObjectStore).batchGetAll() is pretty new.
+    "idbindex_batchGetAll.tentative.any.js",
+    "idbobjectstore_batchGetAll_largeValue.tentative.any.js",
+    "idbobjectstore_batchGetAll.tentative.any.js",
+
+    // Transaction Durability is pretty new
+    "transaction-relaxed-durability.tentative.any.js",
+
+    // New Tests that we should get passing
+    "structured-clone-transaction-state.any.js",
+    "transaction-scheduling-within-database.any.js",
+]);
 
 const filenames = glob.sync("/**/*.js", { root: testFolder });
 for (const absFilename of filenames) {
-    const filename = path.relative(testFolder, absFilename);
-    if (skip.includes(filename)) {
+    const filename = path.relative(testFolder, absFilename).replace(/\\/g, "/");
+    if (skip.delete(filename)) {
         console.log(`Skipping ${filename}...`);
         skipped += 1;
         continue;
@@ -111,8 +136,9 @@ for (const absFilename of filenames) {
     }
 }
 
-if (skipped !== skip.length) {
-    const errorMsg = `Skipped ${skipped} tests, but skip.length is ${skip.length}. Missing file?`;
+if (skip.size > 0) {
+    const errorMsg = `Skipped ${skipped} tests, but some "skipped" tests never ran. Are you missing some files?`;
+    console.error(Array.from(skip.values()));
     throw new Error(errorMsg);
 }
 

@@ -377,25 +377,25 @@ export class FDBCursor {
         const transaction = effectiveObjectStore.transaction;
 
         if (transaction._state !== "active") {
-            throw new TransactionInactiveError();
+            throw TransactionInactiveError();
         }
 
         if (transaction.mode === "readonly") {
-            throw new ReadOnlyError();
+            throw ReadOnlyError();
         }
 
         if (effectiveObjectStore._rawObjectStore.deleted) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         if (
             !(this.source instanceof FDBObjectStore) &&
             this.source._rawIndex.deleted
         ) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (!this._gotValue || !this.hasOwnProperty("value")) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         const clone = structuredClone(value);
@@ -410,7 +410,7 @@ export class FDBCursor {
             }
 
             if (cmp(tempKey, effectiveKey) !== 0) {
-                throw new DataError();
+                throw DataError();
             }
         }
 
@@ -440,21 +440,21 @@ export class FDBCursor {
         const transaction = effectiveObjectStore.transaction;
 
         if (transaction._state !== "active") {
-            throw new TransactionInactiveError();
+            throw TransactionInactiveError();
         }
 
         if (effectiveObjectStore._rawObjectStore.deleted) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         if (
             !(this.source instanceof FDBObjectStore) &&
             this.source._rawIndex.deleted
         ) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (!this._gotValue) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (this._request) {
@@ -486,21 +486,21 @@ export class FDBCursor {
         const transaction = effectiveObjectStore.transaction;
 
         if (transaction._state !== "active") {
-            throw new TransactionInactiveError();
+            throw TransactionInactiveError();
         }
 
         if (effectiveObjectStore._rawObjectStore.deleted) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         if (
             !(this.source instanceof FDBObjectStore) &&
             this.source._rawIndex.deleted
         ) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (!this._gotValue) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (key !== undefined) {
@@ -516,7 +516,7 @@ export class FDBCursor {
                     (this.direction === "prev" ||
                         this.direction === "prevunique"))
             ) {
-                throw new DataError();
+                throw DataError();
             }
         }
 
@@ -538,33 +538,33 @@ export class FDBCursor {
         const transaction = effectiveObjectStore.transaction;
 
         if (transaction._state !== "active") {
-            throw new TransactionInactiveError();
+            throw TransactionInactiveError();
         }
 
         if (effectiveObjectStore._rawObjectStore.deleted) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         if (
             !(this.source instanceof FDBObjectStore) &&
             this.source._rawIndex.deleted
         ) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (
             this.source instanceof FDBObjectStore ||
             (this.direction !== "next" && this.direction !== "prev")
         ) {
-            throw new InvalidAccessError();
+            throw InvalidAccessError();
         }
 
         if (!this._gotValue) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         // Not sure about this
         if (key === undefined || primaryKey === undefined) {
-            throw new DataError();
+            throw DataError();
         }
 
         key = valueToKey(key);
@@ -573,7 +573,7 @@ export class FDBCursor {
             (cmpResult === -1 && this.direction === "next") ||
             (cmpResult === 1 && this.direction === "prev")
         ) {
-            throw new DataError();
+            throw DataError();
         }
         const cmpResult2 = cmp(primaryKey, this._objectStorePosition);
         if (cmpResult === 0) {
@@ -581,7 +581,7 @@ export class FDBCursor {
                 (cmpResult2 <= 0 && this.direction === "next") ||
                 (cmpResult2 >= 0 && this.direction === "prev")
             ) {
-                throw new DataError();
+                throw DataError();
             }
         }
 
@@ -605,25 +605,25 @@ export class FDBCursor {
         const transaction = effectiveObjectStore.transaction;
 
         if (transaction._state !== "active") {
-            throw new TransactionInactiveError();
+            throw TransactionInactiveError();
         }
 
         if (transaction.mode === "readonly") {
-            throw new ReadOnlyError();
+            throw ReadOnlyError();
         }
 
         if (effectiveObjectStore._rawObjectStore.deleted) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         if (
             !(this.source instanceof FDBObjectStore) &&
             this.source._rawIndex.deleted
         ) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (!this._gotValue || !this.hasOwnProperty("value")) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         return transaction._execRequestAsync({

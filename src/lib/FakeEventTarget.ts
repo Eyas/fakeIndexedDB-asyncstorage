@@ -85,7 +85,7 @@ abstract class FakeEventTarget {
     public addEventListener(
         type: EventType,
         callback: EventCallback,
-        capture = false,
+        capture = false
     ) {
         this.listeners.push({
             callback,
@@ -97,7 +97,7 @@ abstract class FakeEventTarget {
     public removeEventListener(
         type: EventType,
         callback: EventCallback,
-        capture = false,
+        capture = false
     ) {
         const i = this.listeners.findIndex((listener) => {
             return (
@@ -113,7 +113,7 @@ abstract class FakeEventTarget {
     // http://www.w3.org/TR/dom/#dispatching-events
     public dispatchEvent(event: FakeEvent) {
         if (event.dispatched || !event.initialized) {
-            throw new InvalidStateError("The object is in an invalid state.");
+            throw InvalidStateError("The object is in an invalid state.");
         }
         event.isTrusted = false;
 

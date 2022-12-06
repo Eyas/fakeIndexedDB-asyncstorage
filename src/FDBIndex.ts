@@ -9,17 +9,18 @@ import {
 } from "./lib/errors.js";
 import FakeDOMStringList from "./lib/FakeDOMStringList.js";
 import Index from "./lib/Index.js";
+import { shallowCopy } from "./lib/shallowCopy.js";
 import { FDBCursorDirection, Key, KeyPath } from "./lib/types.js";
 import valueToKey from "./lib/valueToKey.js";
 import valueToKeyRange from "./lib/valueToKeyRange.js";
 
 const confirmActiveTransaction = (index: FDBIndex) => {
     if (index._rawIndex.deleted || index.objectStore._rawObjectStore.deleted) {
-        throw new InvalidStateError();
+        throw InvalidStateError();
     }
 
     if (index.objectStore.transaction._state !== "active") {
-        throw new TransactionInactiveError();
+        throw TransactionInactiveError();
     }
 };
 
@@ -38,7 +39,7 @@ class FDBIndex {
 
         this._name = rawIndex.name;
         this.objectStore = objectStore;
-        this.keyPath = rawIndex.keyPath;
+        this.keyPath = shallowCopy(rawIndex.keyPath);
         this.multiEntry = rawIndex.multiEntry;
         this.unique = rawIndex.unique;
     }
@@ -52,18 +53,18 @@ class FDBIndex {
         const transaction = this.objectStore.transaction;
 
         if (!transaction.db._runningVersionchangeTransaction) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         if (transaction._state !== "active") {
-            throw new TransactionInactiveError();
+            throw TransactionInactiveError();
         }
 
         if (
             this._rawIndex.deleted ||
             this.objectStore._rawObjectStore.deleted
         ) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         name = String(name);
@@ -73,7 +74,7 @@ class FDBIndex {
         }
 
         if (this.objectStore.indexNames.contains(name)) {
-            throw new ConstraintError();
+            throw ConstraintError();
         }
 
         const oldName = this._name;

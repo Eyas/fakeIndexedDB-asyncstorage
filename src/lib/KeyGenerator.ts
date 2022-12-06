@@ -8,7 +8,7 @@ class KeyGenerator {
 
     public next() {
         if (this.num >= MAX_KEY) {
-            throw new ConstraintError();
+            throw ConstraintError();
         }
 
         this.num += 1;

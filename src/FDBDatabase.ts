@@ -14,9 +14,11 @@ import { queueTask } from "./lib/scheduling.js";
 import { KeyPath, TransactionMode } from "./lib/types.js";
 import validateKeyPath from "./lib/validateKeyPath.js";
 
+export const ALLOW_VERSION_CHANGE = Symbol("allow-version-change");
+
 const confirmActiveVersionchangeTransaction = (database: FDBDatabase) => {
     if (!database._runningVersionchangeTransaction) {
-        throw new InvalidStateError();
+        throw InvalidStateError();
     }
 
     // Find the latest versionchange transaction
@@ -26,15 +28,15 @@ const confirmActiveVersionchangeTransaction = (database: FDBDatabase) => {
     const transaction = transactions[transactions.length - 1];
 
     if (
-        !transaction ||
-        transaction._state === "finished" ||
-        transaction._state === "aborting"
+        !transaction
+        // || transaction._state === "finished"
+        // || transaction._state === "aborting"
     ) {
-        throw new InvalidStateError();
+        throw InvalidStateError();
     }
 
     if (transaction._state !== "active") {
-        throw new TransactionInactiveError();
+        throw TransactionInactiveError();
     }
 
     return transaction;
@@ -111,11 +113,11 @@ class FDBDatabase extends FakeEventTarget {
         }
 
         if (this._rawDatabase.rawObjectStores.has(name)) {
-            throw new ConstraintError();
+            throw ConstraintError();
         }
 
         if (autoIncrement && (keyPath === "" || Array.isArray(keyPath))) {
-            throw new InvalidAccessError();
+            throw InvalidAccessError();
         }
 
         const objectStoreNames = [...this.objectStoreNames];
@@ -154,7 +156,7 @@ class FDBDatabase extends FakeEventTarget {
 
         const store = this._rawDatabase.rawObjectStores.get(name);
         if (store === undefined) {
-            throw new NotFoundError();
+            throw NotFoundError();
         }
 
         this.objectStoreNames = new FakeDOMStringList(
@@ -187,12 +189,38 @@ class FDBDatabase extends FakeEventTarget {
         });
     }
 
-    public transaction(storeNames: string | string[], mode?: TransactionMode) {
+    public transaction(
+        storeNames: string | string[],
+        mode?: TransactionMode,
+        allowVersionChange?: typeof ALLOW_VERSION_CHANGE
+    ) {
+        if (this._closePending) {
+            throw InvalidStateError();
+        }
+
+        if (!Array.isArray(storeNames)) {
+            storeNames = [storeNames];
+        }
+        for (const storeName of storeNames) {
+            if (!this.objectStoreNames.contains(storeName)) {
+                throw NotFoundError(
+                    "No objectStore named " + storeName + " in this database"
+                );
+            }
+        }
+
         mode = mode !== undefined ? mode : "readonly";
         if (
             mode !== "readonly" &&
             mode !== "readwrite" &&
             mode !== "versionchange"
+        ) {
+            throw new TypeError("Invalid mode: " + mode);
+        }
+
+        if (
+            mode === "versionchange" &&
+            allowVersionChange !== ALLOW_VERSION_CHANGE
         ) {
             throw new TypeError("Invalid mode: " + mode);
         }
@@ -207,25 +235,11 @@ class FDBDatabase extends FakeEventTarget {
             }
         );
         if (hasActiveVersionchange) {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
-        if (this._closePending) {
-            throw new InvalidStateError();
-        }
-
-        if (!Array.isArray(storeNames)) {
-            storeNames = [storeNames];
-        }
         if (storeNames.length === 0 && mode !== "versionchange") {
-            throw new InvalidAccessError();
-        }
-        for (const storeName of storeNames) {
-            if (!this.objectStoreNames.contains(storeName)) {
-                throw new NotFoundError(
-                    "No objectStore named " + storeName + " in this database"
-                );
-            }
+            throw InvalidAccessError();
         }
 
         const tx = new FDBTransaction(storeNames, mode, this);

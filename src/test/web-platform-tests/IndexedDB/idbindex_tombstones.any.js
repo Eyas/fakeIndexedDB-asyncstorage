@@ -44,7 +44,7 @@ async function run_test(testCase, transactionMode, direction) {
     await createTombstones(testCase, db);
 
     const txn = db.transaction(["objectStore"], transactionMode);
-    cursor = txn
+    let cursor = txn
         .objectStore("objectStore")
         .index("index")
         .openCursor(IDBKeyRange.bound(-11, 11), direction);

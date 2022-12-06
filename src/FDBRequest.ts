@@ -17,7 +17,7 @@ class FDBRequest extends FakeEventTarget {
 
     public get error() {
         if (this.readyState === "pending") {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         return this._error;
     }
@@ -28,7 +28,7 @@ class FDBRequest extends FakeEventTarget {
 
     public get result() {
         if (this.readyState === "pending") {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         return this._result;
     }

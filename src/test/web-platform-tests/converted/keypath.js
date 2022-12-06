@@ -418,7 +418,7 @@ keypath(
     "list with 1 field"
 );
 
-loop_array = [];
+let loop_array = [];
 loop_array.push(loop_array);
 keypath(
     loop_array,

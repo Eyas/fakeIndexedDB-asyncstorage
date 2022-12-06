@@ -43,6 +43,8 @@ class FDBTransaction extends FakeEventTarget {
     public oncomplete: EventCallback | null = null;
     public onerror: EventCallback | null = null;
 
+    public durability: "default" | "relaxed" | "strict" = "default";
+
     public _scope: Set<string>;
     private _requests: {
         operation: () => unknown | Promise<unknown>;
@@ -67,15 +69,13 @@ class FDBTransaction extends FakeEventTarget {
     }
 
     // http://www.w3.org/TR/2015/REC-IndexedDB-20150108/#dfn-steps-for-aborting-a-transaction
-    public async _abort(errName: string | null) {
+    public async _abort(error: DOMException | null) {
         for (const f of this._rollbackLog.transactional.reverse()) {
             await f();
         }
 
-        if (errName !== null) {
-            const e = new Error();
-            e.name = errName;
-            this.error = e;
+        if (error !== null) {
+            this.error = error;
         }
 
         // Should this directly remove from _requests?
@@ -84,7 +84,7 @@ class FDBTransaction extends FakeEventTarget {
                 request.readyState = "done"; // This will cancel execution of this request's operation
                 if (request.source) {
                     request.result = undefined;
-                    request.error = new AbortError();
+                    request.error = AbortError();
 
                     const event = new FakeEvent("error", {
                         bubbles: true,
@@ -110,7 +110,7 @@ class FDBTransaction extends FakeEventTarget {
 
     public abort() {
         if (this._state === "committing" || this._state === "finished") {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
         this._runImmediateRollback();
         this._state = "aborting";
@@ -125,7 +125,7 @@ class FDBTransaction extends FakeEventTarget {
     // http://w3c.github.io/IndexedDB/#dom-idbtransaction-objectstore
     public objectStore(name: string) {
         if (this._state !== "active") {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         const objectStore = this._objectStoresCache.get(name);
@@ -135,7 +135,7 @@ class FDBTransaction extends FakeEventTarget {
 
         const rawObjectStore = this.db._rawDatabase.rawObjectStores.get(name);
         if (!this._scope.has(name) || rawObjectStore === undefined) {
-            throw new NotFoundError();
+            throw NotFoundError();
         }
 
         const objectStore2 = new FDBObjectStore(
@@ -156,7 +156,7 @@ class FDBTransaction extends FakeEventTarget {
         let request = obj.hasOwnProperty("request") ? obj.request : null;
 
         if (this._state !== "active") {
-            throw new TransactionInactiveError();
+            throw TransactionInactiveError();
         }
 
         // Request should only be passed for cursors
@@ -234,7 +234,7 @@ class FDBTransaction extends FakeEventTarget {
 
                     defaultAction = () => {
                         this._runImmediateRollback();
-                        return this._abort(err.name);
+                        return this._abort(err);
                     };
                 }
 
@@ -244,7 +244,7 @@ class FDBTransaction extends FakeEventTarget {
                 } catch (err) {
                     if (this._state !== "committing") {
                         this._runImmediateRollback();
-                        await this._abort("AbortError");
+                        await this._abort(AbortError());
                     }
                     throw err;
                 }
@@ -276,7 +276,7 @@ class FDBTransaction extends FakeEventTarget {
 
     public commit() {
         if (this._state !== "active") {
-            throw new InvalidStateError();
+            throw InvalidStateError();
         }
 
         this._state = "committing";

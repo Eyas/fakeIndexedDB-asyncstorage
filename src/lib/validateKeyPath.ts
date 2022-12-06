@@ -28,11 +28,12 @@ const validateKeyPath = (keyPath: KeyPath, parent?: "array" | "string") => {
                 return;
             }
         } catch (err) {
-            throw new SyntaxError(err.message);
+            throw new DOMException(err.message, "SyntaxError");
         }
         if (keyPath.indexOf(" ") >= 0) {
-            throw new SyntaxError(
+            throw new DOMException(
                 "The keypath argument contains an invalid key path (no spaces allowed).",
+                "SyntaxError"
             );
         }
     }
@@ -40,8 +41,9 @@ const validateKeyPath = (keyPath: KeyPath, parent?: "array" | "string") => {
     if (Array.isArray(keyPath) && keyPath.length > 0) {
         if (parent) {
             // No nested arrays
-            throw new SyntaxError(
+            throw new DOMException(
                 "The keypath argument contains an invalid key path (nested arrays).",
+                "SyntaxError"
             );
         }
         for (const part of keyPath) {
@@ -49,14 +51,14 @@ const validateKeyPath = (keyPath: KeyPath, parent?: "array" | "string") => {
         }
         return;
     } else if (typeof keyPath === "string" && keyPath.indexOf(".") >= 0) {
-        keyPath = keyPath.split(".");
-        for (const part of keyPath) {
+        const split = keyPath.split(".");
+        for (const part of split) {
             validateKeyPath(part, "string");
         }
         return;
     }
 
-    throw new SyntaxError();
+    throw new DOMException("", "SyntaxError");
 };
 
 export default validateKeyPath;

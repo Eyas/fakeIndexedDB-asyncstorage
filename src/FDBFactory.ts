@@ -1,4 +1,4 @@
-import FDBDatabase from "./FDBDatabase.js";
+import FDBDatabase, { ALLOW_VERSION_CHANGE } from "./FDBDatabase.js";
 import FDBOpenDBRequest from "./FDBOpenDBRequest.js";
 import FDBVersionChangeEvent from "./FDBVersionChangeEvent.js";
 import { AsyncStringMap } from "./lib/asyncMap.js";
@@ -145,7 +145,8 @@ const runVersionchangeTransaction = (
         // Get rid of this setImmediate?
         const transaction = connection.transaction(
             connection.objectStoreNames,
-            "versionchange"
+            "versionchange",
+            ALLOW_VERSION_CHANGE
         );
         request.result = connection;
         request.readyState = "done";
@@ -171,7 +172,7 @@ const runVersionchangeTransaction = (
             connection._runningVersionchangeTransaction = false;
             request.transaction = null;
             queueTask(() => {
-                cb(new AbortError());
+                cb(AbortError());
             });
         });
         transaction.addEventListener("complete", () => {
@@ -180,7 +181,7 @@ const runVersionchangeTransaction = (
             // Let other complete event handlers run before continuing
             queueTask(() => {
                 if (connection._closePending) {
-                    cb(new AbortError());
+                    cb(AbortError());
                 } else {
                     cb(null);
                 }
@@ -217,7 +218,7 @@ const openDatabase = async (
     }
 
     if (db.version > version) {
-        return cb(new VersionError());
+        return cb(VersionError());
     }
 
     const connection = new FDBDatabase(db);
