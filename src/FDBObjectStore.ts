@@ -134,7 +134,7 @@ class FDBObjectStore {
     set name(name: any) {
         const transaction = this.transaction;
 
-        if (!transaction.db._runningVersionchangeTransaction) {
+        if (transaction.mode !== "versionchange") {
             throw InvalidStateError();
         }
 

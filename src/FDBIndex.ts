@@ -52,7 +52,7 @@ class FDBIndex {
     set name(name: any) {
         const transaction = this.objectStore.transaction;
 
-        if (!transaction.db._runningVersionchangeTransaction) {
+        if (transaction.mode !== "versionchange") {
             throw InvalidStateError();
         }
 
