@@ -258,7 +258,7 @@ class FDBTransaction extends FakeEventTarget {
             }
 
             // Give it another chance for new handlers to be set before finishing
-            queueTask(this._start.bind(this));
+            queueMicrotask(this._start.bind(this));
             return;
         }
 

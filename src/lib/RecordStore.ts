@@ -219,8 +219,10 @@ class RecordStore {
         this.records = [];
 
         if (deletedRecords.length > 0) {
-            await Promise.all(deletedRecords.map((r) => this.deleteRecord(r)));
-            await this.saveSort();
+            await Promise.all([
+                ...deletedRecords.map((r) => this.deleteRecord(r)),
+                this.saveSort(),
+            ]);
         }
 
         return deletedRecords;

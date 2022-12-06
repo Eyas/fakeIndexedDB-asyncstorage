@@ -180,11 +180,13 @@ class FDBDatabase extends FakeEventTarget {
         transaction._objectStoresCache.delete(name);
         transaction._execRequestAsync({
             async operation() {
-                await store.records.clear();
-                for (const index of store.rawIndexes.values()) {
-                    await index.records.clear();
-                }
-                await store.rawIndexes.clear();
+                await Promise.all([
+                    store.records.clear(),
+                    ...Array.from(store.rawIndexes.values()).map((index) =>
+                        index.records.clear()
+                    ),
+                    store.rawIndexes.clear(),
+                ]);
             },
         });
     }
