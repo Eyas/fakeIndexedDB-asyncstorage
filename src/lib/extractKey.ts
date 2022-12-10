@@ -27,7 +27,7 @@ const extractKey = (keyPath: KeyPath, value: Value) => {
         return value;
     }
 
-    let remainingKeyPath: string | null = keyPath;
+    let remainingKeyPath: string | null = String(keyPath);
     let object = value;
 
     while (remainingKeyPath !== null) {

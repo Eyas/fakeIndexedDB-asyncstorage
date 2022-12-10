@@ -91,9 +91,9 @@ class RecordStore {
         return this.loaded;
     }
 
-    private async saveSort() {
+    private saveSort() {
         const serialized = JSON.stringify(this.records.map((r) => r.r));
-        await this.storage.setItem(
+        return this.storage.setItem(
             "store://" + ComputeKey(this.uniqueId),
             serialized
         );
@@ -101,14 +101,14 @@ class RecordStore {
 
     private async changeRecord(r: RecordWithRef) {
         const serialized = JSON.stringify(await serialize(r as any));
-        await this.storage.setItem(
+        return this.storage.setItem(
             "value://" + ComputeKey(this.uniqueId, r.r),
             serialized
         );
     }
 
-    private async deleteRecord(r: RecordWithRef) {
-        await this.storage.removeItem(
+    private deleteRecord(r: RecordWithRef) {
+        return this.storage.removeItem(
             "value://" + ComputeKey(this.uniqueId, r.r)
         );
     }

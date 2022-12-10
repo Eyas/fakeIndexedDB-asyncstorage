@@ -39,6 +39,11 @@ const skip = new Set([
     "idbcursor-delete-exception-order.js",
     "idbcursor-update-exception-order.js",
 
+    // This might never work in Async. We don't close transactions as soon as the tests expect. These tests assume
+    // that in one task (setTimeout(0)), a transaction would end if no more tasks have happened. But in our case,
+    // async storage can take a while to return, might trigger callbacks, etc.
+    "idbcursor-advance-exception-order.js",
+
     // Mostly works, but subtlely wrong behavior when renaming a newly-created index/store and then aborting the upgrade
     // transaction (this has roughly 0 real world impact, but could be indicative of other problems in fake-indexeddb).
     "idbindex-rename-abort.js",

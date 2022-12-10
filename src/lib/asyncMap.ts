@@ -230,8 +230,10 @@ export class AsyncStringMap2<V> {
         const shouldUpdateRecords = this.impl.delete(key);
 
         if (shouldUpdateRecords) {
-            await this.marshaller.remove(key);
-            await this.updateRecords();
+            await Promise.all([
+                this.marshaller.remove(key),
+                this.updateRecords(),
+            ]);
         }
     }
 

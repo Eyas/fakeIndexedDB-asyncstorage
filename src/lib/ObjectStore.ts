@@ -43,7 +43,7 @@ function RawIndexesBuilder(
                 multiEntry: idx.multiEntry,
                 unique: idx.unique,
             };
-            return JSON.stringify(await serialize(diskFormat));
+            return JSON.stringify(await serialize(diskFormat as any));
         },
     };
 }
@@ -197,7 +197,7 @@ class ObjectStore {
                         "Cannot have an array key path in an object store with a key generator"
                     );
                 }
-                let remainingKeyPath = this.keyPath;
+                let remainingKeyPath = String(this.keyPath);
                 let object = newRecord.value;
                 let identifier;
 

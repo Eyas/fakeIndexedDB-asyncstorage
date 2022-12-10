@@ -5,11 +5,11 @@ const canInjectKey = (keyPath: KeyPath, value: Value) => {
     if (Array.isArray(keyPath)) {
         // tslint:disable-next-line max-line-length
         throw new Error(
-            "The key paths used in this section are always strings and never sequences, since it is not possible to create a object store which has a key generator and also has a key path that is a sequence.",
+            "The key paths used in this section are always strings and never sequences, since it is not possible to create a object store which has a key generator and also has a key path that is a sequence."
         );
     }
 
-    const identifiers = keyPath.split(".");
+    const identifiers = String(keyPath).split(".");
     if (identifiers.length === 0) {
         throw new Error("Assert: identifiers is not empty");
     }

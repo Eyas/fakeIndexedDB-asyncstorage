@@ -47,7 +47,7 @@ class Database {
     ) {
         type DiskFormat = {
             objectStoreName: string;
-            keyPath: KeyPath | null;
+            keyPath: string | string[] | null;
             autoIncrement: boolean;
         };
 
@@ -69,7 +69,11 @@ class Database {
             async save(s) {
                 const diskFormat: DiskFormat = {
                     objectStoreName: s.name,
-                    keyPath: s.keyPath,
+                    keyPath:
+                        s.keyPath &&
+                        (Array.isArray(s.keyPath)
+                            ? s.keyPath
+                            : String(s.keyPath)),
                     autoIncrement: s.autoIncrement,
                 };
                 return JSON.stringify(await serialize(diskFormat));
